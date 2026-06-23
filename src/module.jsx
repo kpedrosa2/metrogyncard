@@ -31,6 +31,14 @@ const defaults = {
     elements: [],
     rules: [],
     positions: {},
+    rings: {
+      entry: { left: 3.6, top: 46.5, width: 10, height: 17.5 },
+      primary: { left: 13.97, top: 14.06, width: 39.63, height: 70.83 },
+      secondary: { left: 43.68, top: 13.02, width: 39.04, height: 72.92 },
+    },
+    layout: {
+      mapHeight: 640,
+    },
     appearance: {
       cardWidth: 132,
       lineWidth: 1.1,
@@ -215,6 +223,14 @@ function normalizeConfig(config) {
     elements: Array.isArray(current.elements) ? current.elements : [],
     rules: Array.isArray(current.rules) ? current.rules : [],
     positions: current.positions && typeof current.positions === 'object' ? current.positions : {},
+    rings: {
+      ...defaults.config.rings,
+      ...(current.rings || {}),
+      entry: { ...defaults.config.rings.entry, ...(current.rings?.entry || {}) },
+      primary: { ...defaults.config.rings.primary, ...(current.rings?.primary || {}) },
+      secondary: { ...defaults.config.rings.secondary, ...(current.rings?.secondary || {}) },
+    },
+    layout: { ...defaults.config.layout, ...(current.layout || {}) },
     appearance: { ...defaults.config.appearance, ...(current.appearance || {}) },
   };
 }
@@ -568,6 +584,22 @@ function RingArrow({ tone, x, y, rotate }) {
   return <span className={`mg-flow-arrow ${tone}`} style={{ left: `${x}%`, top: `${y}%`, transform: `translate(-50%, -50%) rotate(${rotate}deg)` }} />;
 }
 
+function ringStyle(ring) {
+  return {
+    left: `${Number(ring.left ?? 0)}%`,
+    top: `${Number(ring.top ?? 0)}%`,
+    width: `${Number(ring.width ?? 10)}%`,
+    height: `${Number(ring.height ?? ring.width ?? 10)}%`,
+  };
+}
+
+function ringCenter(ring) {
+  return {
+    left: `${Number(ring.left ?? 0) + Number(ring.width ?? 0) / 2}%`,
+    top: `${Number(ring.top ?? 0) + Number(ring.height ?? ring.width ?? 0) / 2}%`,
+  };
+}
+
 function FlowElement({ element, switches, rules, linkBase, editMode, onDragElement }) {
   if (element.enabled === false) return null;
   if (element.type === 'line') return null;
@@ -598,7 +630,7 @@ function FlowElement({ element, switches, rules, linkBase, editMode, onDragEleme
   );
 }
 
-function NetworkMap({ switches, connections, animateLinks, rules, elements, linkBase, blinkOnAlert, showTooltips, editMode, onMoveSwitch, onMoveElement }) {
+function NetworkMap({ switches, connections, animateLinks, rules, elements, rings, linkBase, blinkOnAlert, showTooltips, editMode, onMoveSwitch, onMoveElement, onMoveRing, onResizeRing }) {
   const byId = Object.fromEntries(switches.map((sw) => [sw.id, sw]));
   const stageRef = useRef(null);
   const pointFromEvent = (event) => {
@@ -641,20 +673,50 @@ function NetworkMap({ switches, connections, animateLinks, rules, elements, link
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up, { once: true });
   };
+  const startDragRing = (event, ringName, mode) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    const start = pointFromEvent(event);
+    const ring = rings[ringName];
+    if (!start || !ring) return;
+    const base = { ...ring };
+    const move = (moveEvent) => {
+      const point = pointFromEvent(moveEvent);
+      if (!point) return;
+      const dx = point.x - start.x;
+      const dy = point.y - start.y;
+      if (mode === 'resize') {
+        onResizeRing(ringName, {
+          width: Math.max(4, Number(base.width || 10) + dx),
+          height: Math.max(4, Number(base.height || base.width || 10) + dy),
+        });
+      } else {
+        onMoveRing(ringName, {
+          left: Number(base.left || 0) + dx,
+          top: Number(base.top || 0) + dy,
+        });
+      }
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up, { once: true });
+  };
   return (
     <div className={`mg-map ${editMode ? 'editing' : ''}`}>
       <div className="mg-stage" ref={stageRef}>
-        <div className="mg-ring-circle entry" />
-        <div className="mg-ring-circle primary" />
-        <div className="mg-ring-circle secondary" />
-        <div className="mg-ring-cut overlap" />
+        {['entry', 'primary', 'secondary'].map((name) => (
+          <div key={name} className={`mg-ring-circle ${name} ${editMode ? 'editable' : ''}`} style={ringStyle(rings[name])} onPointerDown={editMode ? (event) => startDragRing(event, name, 'move') : undefined}>
+            {editMode && <span className="mg-ring-handle" onPointerDown={(event) => startDragRing(event, name, 'resize')} />}
+          </div>
+        ))}
         {ringArrows.map(([tone, x, y, rotate], index) => <RingArrow key={index} tone={tone} x={x} y={y} rotate={rotate} />)}
-        <svg className="mg-links" viewBox="0 0 100 100" preserveAspectRatio="none">
-          <line x1="7.87" y1="60.81" x2="12.13" y2="60.81" className="mg-link entry static" />
-          <line x1="7.94" y1="49.35" x2="7.94" y2="60.81" className="mg-link entry static" />
-        </svg>
-        <div className="mg-ring-label primary"><span>ANEL</span><span>PRIMARIO</span></div>
-        <div className="mg-ring-label secondary"><span>ANEL</span><span>SECUNDARIO</span></div>
+        <svg className="mg-links" viewBox="0 0 100 100" preserveAspectRatio="none" />
+        <div className="mg-ring-label primary" style={ringCenter(rings.primary)}><span>ANEL</span><span>PRIMARIO</span></div>
+        <div className="mg-ring-label secondary" style={ringCenter(rings.secondary)}><span>ANEL</span><span>SECUNDARIO</span></div>
         {switches.map((site) => <SwitchNode key={`${site.id}-node`} site={site} blinkOnAlert={blinkOnAlert} editMode={editMode} onDragPosition={startDragSwitch} />)}
         {(elements || []).map((element, index) => <FlowElement key={element.id || index} element={element} switches={switches} rules={rules} linkBase={linkBase} editMode={editMode} onDragElement={startDragElement} />)}
         {switches.map((site) => <CompactSiteCard key={site.id} site={site} rules={rules} link={linkBase} blinkOnAlert={blinkOnAlert} showTooltips={showTooltips && !editMode} editMode={editMode} onDragPosition={startDragSwitch} />)}
@@ -803,6 +865,50 @@ function Panel({ options, data, width, height, onOptionsChange }) {
     const elements = config.elements.map((item) => item === element || item.id === element.id ? { ...item, x: Number(point.x.toFixed(2)), y: Number(point.y.toFixed(2)) } : item);
     updateConfig({ ...config, elements });
   };
+  const moveRing = (ringName, point) => {
+    const current = config.rings?.[ringName] || defaults.config.rings[ringName];
+    updateConfig({
+      ...config,
+      rings: {
+        ...config.rings,
+        [ringName]: {
+          ...current,
+          left: Number(Math.max(-30, Math.min(130, point.left)).toFixed(2)),
+          top: Number(Math.max(-30, Math.min(130, point.top)).toFixed(2)),
+        },
+      },
+    });
+  };
+  const resizeRing = (ringName, size) => {
+    const current = config.rings?.[ringName] || defaults.config.rings[ringName];
+    updateConfig({
+      ...config,
+      rings: {
+        ...config.rings,
+        [ringName]: {
+          ...current,
+          width: Number(Math.max(4, Math.min(140, size.width)).toFixed(2)),
+          height: Number(Math.max(4, Math.min(140, size.height)).toFixed(2)),
+        },
+      },
+    });
+  };
+  const startResizeMap = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const startY = event.clientY;
+    const base = Number(config.layout?.mapHeight || defaults.config.layout.mapHeight);
+    const move = (moveEvent) => {
+      const nextHeight = Math.max(280, Math.min(1200, base + (moveEvent.clientY - startY)));
+      updateConfig({ ...config, layout: { ...config.layout, mapHeight: Math.round(nextHeight) } });
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up, { once: true });
+  };
 
   return (
     <div className="mg-root" style={{ width, height }}>
@@ -812,7 +918,8 @@ function Panel({ options, data, width, height, onOptionsChange }) {
           <button className={`mg-position-toggle ${editPositions ? 'active' : ''}`} onClick={() => setEditPositions(!editPositions)}>{editPositions ? 'Salvar posições' : 'Editar posições'}</button>
         </header>
         {opts.showTopCards && <TopCards switches={switches} capacity={capacity} />}
-        <div className="mg-main"><NetworkMap switches={switches} connections={connections} animateLinks={opts.animateLinks} rules={config.rules} elements={config.elements} linkBase={opts.linkBase} blinkOnAlert={opts.blinkOnAlert} showTooltips={opts.showTooltips} editMode={editPositions} onMoveSwitch={moveSwitch} onMoveElement={moveElement} /><SidePanel showLegend={opts.showLegend} showMiniFlow={opts.showMiniFlow} showTraffic={opts.showTraffic} upload={upload} download={download} /></div>
+        <div className="mg-main" style={{ '--map-height': `${Number(config.layout?.mapHeight || defaults.config.layout.mapHeight)}px` }}><NetworkMap switches={switches} connections={connections} animateLinks={opts.animateLinks} rules={config.rules} elements={config.elements} rings={config.rings} linkBase={opts.linkBase} blinkOnAlert={opts.blinkOnAlert} showTooltips={opts.showTooltips} editMode={editPositions} onMoveSwitch={moveSwitch} onMoveElement={moveElement} onMoveRing={moveRing} onResizeRing={resizeRing} /><SidePanel showLegend={opts.showLegend} showMiniFlow={opts.showMiniFlow} showTraffic={opts.showTraffic} upload={upload} download={download} /></div>
+        {editPositions && <div className="mg-alarm-resize" onPointerDown={startResizeMap} title="Arraste para ajustar a altura do mapa" />}
         {opts.showAlarms && <AlarmTable switches={switches} />}
       </main>
     </div>
