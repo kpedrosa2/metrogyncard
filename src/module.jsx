@@ -603,33 +603,6 @@ function ringCenter(ring) {
   };
 }
 
-function ringOverlapStyle(primary, secondary) {
-  if (!primary || !secondary) return { display: 'none' };
-  const p = {
-    left: Number(primary.left ?? 0),
-    top: Number(primary.top ?? 0),
-    right: Number(primary.left ?? 0) + Number(primary.width ?? 0),
-    bottom: Number(primary.top ?? 0) + Number(primary.height ?? primary.width ?? 0),
-  };
-  const s = {
-    left: Number(secondary.left ?? 0),
-    top: Number(secondary.top ?? 0),
-    right: Number(secondary.left ?? 0) + Number(secondary.width ?? 0),
-    bottom: Number(secondary.top ?? 0) + Number(secondary.height ?? secondary.width ?? 0),
-  };
-  const left = Math.max(p.left, s.left);
-  const top = Math.max(p.top, s.top);
-  const right = Math.min(p.right, s.right);
-  const bottom = Math.min(p.bottom, s.bottom);
-  if (right <= left || bottom <= top) return { display: 'none' };
-  return {
-    left: `${left}%`,
-    top: `${top}%`,
-    width: `${right - left}%`,
-    height: `${bottom - top}%`,
-  };
-}
-
 function FlowElement({ element, switches, rules, linkBase, editMode, onDragElement }) {
   if (element.enabled === false) return null;
   if (element.type === 'line') return null;
@@ -767,7 +740,6 @@ function NetworkMap({ switches, connections, animateLinks, rules, elements, ring
         <div className={`mg-ring-circle secondary ${editMode ? 'editable' : ''}`} style={ringStyle(rings.secondary)} onPointerDown={editMode ? (event) => startDragRing(event, 'secondary', 'move') : undefined}>
           {editMode && <span className="mg-ring-handle" onPointerDown={(event) => startDragRing(event, 'secondary', 'resize')} />}
         </div>
-        <div className="mg-ring-overlap-mask" style={ringOverlapStyle(rings.primary, rings.secondary)} />
         <div className={`mg-ring-circle primary ${editMode ? 'editable' : ''}`} style={ringStyle(rings.primary)} onPointerDown={editMode ? (event) => startDragRing(event, 'primary', 'move') : undefined}>
           {editMode && <span className="mg-ring-handle" onPointerDown={(event) => startDragRing(event, 'primary', 'resize')} />}
         </div>

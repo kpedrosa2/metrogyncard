@@ -214,25 +214,15 @@
   aspect-ratio: 1 / 1;
   border-radius: 50%;
   border-style: solid;
-  background: transparent;
+  background: rgba(3, 10, 18, 0.72);
   box-sizing: border-box;
   z-index: 0;
 }
 
-.mg-ring-overlap-mask {
-  position: absolute;
-  z-index: 1;
-  border-radius: 50%;
-  background: #050b12;
-  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.24);
-  pointer-events: none;
-}
-
-body.theme-light .mg-ring-overlap-mask,
-.theme-light .mg-ring-overlap-mask,
-html[data-theme="light"] .mg-ring-overlap-mask {
-  background: #ffffff;
-  box-shadow: none;
+body.theme-light .mg-ring-circle,
+.theme-light .mg-ring-circle,
+html[data-theme="light"] .mg-ring-circle {
+  background: rgba(255, 255, 255, 0.86);
 }
 
 .mg-ring-circle.entry {
@@ -242,7 +232,9 @@ html[data-theme="light"] .mg-ring-overlap-mask {
   top: 46.5%;
   border-width: 2px;
   border-color: #1aa7ff;
+  background: rgba(3, 15, 28, 0.62);
   box-shadow: 0 0 12px rgba(26, 167, 255, 0.7), inset 0 0 9px rgba(26, 167, 255, 0.2);
+  z-index: 3;
 }
 
 .mg-ring-circle.primary {
@@ -253,7 +245,8 @@ html[data-theme="light"] .mg-ring-overlap-mask {
   aspect-ratio: auto;
   border-width: 2px;
   border-color: #74ff58;
-  box-shadow: 0 0 12px rgba(116, 255, 88, 0.72), inset 0 0 9px rgba(116, 255, 88, 0.16);
+  background: rgba(3, 10, 18, 0.78);
+  box-shadow: 0 0 12px rgba(116, 255, 88, 0.72), inset 0 0 18px rgba(116, 255, 88, 0.06);
   z-index: 2;
 }
 
@@ -265,21 +258,43 @@ html[data-theme="light"] .mg-ring-overlap-mask {
   aspect-ratio: auto;
   border-width: 2px;
   border-color: #74ff58;
-  box-shadow: 0 0 12px rgba(116, 255, 88, 0.72), inset 0 0 9px rgba(116, 255, 88, 0.16);
-  z-index: 0;
+  background: rgba(3, 10, 18, 0.68);
+  box-shadow: 0 0 12px rgba(116, 255, 88, 0.72), inset 0 0 18px rgba(116, 255, 88, 0.05);
+  z-index: 1;
+}
+
+body.theme-light .mg-ring-circle.entry,
+.theme-light .mg-ring-circle.entry,
+html[data-theme="light"] .mg-ring-circle.entry {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+body.theme-light .mg-ring-circle.primary,
+.theme-light .mg-ring-circle.primary,
+html[data-theme="light"] .mg-ring-circle.primary {
+  background: rgba(255, 255, 255, 0.94);
+}
+
+body.theme-light .mg-ring-circle.secondary,
+.theme-light .mg-ring-circle.secondary,
+html[data-theme="light"] .mg-ring-circle.secondary {
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .mg-ring-circle.editable {
   cursor: move;
 }
 
-.mg-ring-circle.primary.editable,
-.mg-ring-circle.entry.editable {
+.mg-ring-circle.primary.editable {
   z-index: 2;
 }
 
+.mg-ring-circle.entry.editable {
+  z-index: 3;
+}
+
 .mg-ring-circle.secondary.editable {
-  z-index: 0;
+  z-index: 1;
 }
 
 .mg-ring-handle {
