@@ -219,6 +219,22 @@
   z-index: 0;
 }
 
+.mg-ring-overlap-mask {
+  position: absolute;
+  z-index: 1;
+  border-radius: 50%;
+  background: #050b12;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.24);
+  pointer-events: none;
+}
+
+body.theme-light .mg-ring-overlap-mask,
+.theme-light .mg-ring-overlap-mask,
+html[data-theme="light"] .mg-ring-overlap-mask {
+  background: #ffffff;
+  box-shadow: none;
+}
+
 .mg-ring-circle.entry {
   width: 10%;
   height: 17.5%;
@@ -238,6 +254,7 @@
   border-width: 2px;
   border-color: #74ff58;
   box-shadow: 0 0 12px rgba(116, 255, 88, 0.72), inset 0 0 9px rgba(116, 255, 88, 0.16);
+  z-index: 2;
 }
 
 .mg-ring-circle.secondary {
@@ -249,11 +266,20 @@
   border-width: 2px;
   border-color: #74ff58;
   box-shadow: 0 0 12px rgba(116, 255, 88, 0.72), inset 0 0 9px rgba(116, 255, 88, 0.16);
+  z-index: 0;
 }
 
 .mg-ring-circle.editable {
   cursor: move;
+}
+
+.mg-ring-circle.primary.editable,
+.mg-ring-circle.entry.editable {
   z-index: 2;
+}
+
+.mg-ring-circle.secondary.editable {
+  z-index: 0;
 }
 
 .mg-ring-handle {
@@ -267,6 +293,7 @@
   background: rgba(5, 13, 24, 0.96);
   box-shadow: 0 0 10px rgba(143, 211, 255, 0.5);
   cursor: nwse-resize;
+  z-index: 6;
 }
 
 .mg-links {
