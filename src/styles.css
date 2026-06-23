@@ -979,6 +979,73 @@ a.mg-site-card { text-decoration: none; color: inherit; }
   margin-top: 8px;
 }
 
+.mg-editor-card.muted {
+  opacity: 0.62;
+}
+
+.mg-switch-config-head {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto auto auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.mg-switch-config-head strong {
+  display: block;
+  color: #e5eefb;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mg-switch-config-head small {
+  display: block;
+  color: #8ea0b8;
+  font-size: 10px;
+}
+
+.mg-switch-config-head button,
+.mg-collapse {
+  border: 1px solid #263345;
+  border-radius: 4px;
+  background: #101b2b;
+  color: #cbd5e1;
+  min-height: 28px;
+  padding: 4px 7px;
+  cursor: pointer;
+}
+
+.mg-switch-config-head button:hover {
+  border-color: #1d6fb8;
+  color: #8fd3ff;
+}
+
+.mg-switch-config-head button.danger {
+  border-color: #5b2330;
+  color: #ff9aa8;
+}
+
+.mg-switch-config-body {
+  display: grid;
+  gap: 7px;
+}
+
+.mg-switch-config-body details {
+  border: 1px solid rgba(38, 51, 69, 0.85);
+  border-radius: 5px;
+  background: rgba(8, 15, 25, 0.7);
+  padding: 7px;
+}
+
+.mg-switch-config-body summary {
+  color: #60bfff;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
 .mg-editor-card label {
   color: #aebbd0;
   font-size: 11px;

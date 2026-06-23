@@ -32,6 +32,7 @@ const defaults = {
     rules: [],
     positions: {},
     cardSizes: {},
+    excludedSwitches: [],
     rings: {
       entry: { left: 3.6, top: 46.5, width: 10, height: 17.5 },
       primary: { left: 13.97, top: 14.06, width: 39.63, height: 70.83 },
@@ -225,6 +226,7 @@ function normalizeConfig(config) {
     rules: Array.isArray(current.rules) ? current.rules : [],
     positions: current.positions && typeof current.positions === 'object' ? current.positions : {},
     cardSizes: current.cardSizes && typeof current.cardSizes === 'object' ? current.cardSizes : {},
+    excludedSwitches: Array.isArray(current.excludedSwitches) ? current.excludedSwitches : [],
     rings: {
       ...defaults.config.rings,
       ...(current.rings || {}),
@@ -238,21 +240,23 @@ function normalizeConfig(config) {
 }
 
 function switchConfigsForInventory(config, inventory) {
-  const byRef = Object.fromEntries((config.switches || []).map((sw) => [sw.refId || sw.id, sw]));
+  const excluded = new Set(config.excludedSwitches || []);
+  const configured = config.switches || [];
   const fromInventory = (inventory || []).map((query) => ({
     id: query.refId,
     refId: query.refId,
     direction: 'Horario',
     thresholds: defaultThresholds,
-    ...(byRef[query.refId] || {}),
-  }));
+    ...(configured.find((sw) => sw.refId === query.refId && !sw.duplicateOf && (sw.id === query.refId || !sw.id)) || {}),
+  })).filter((sw) => !excluded.has(sw.refId) && !excluded.has(sw.id));
   const inventoryRefs = new Set(fromInventory.map((sw) => sw.refId));
-  const manual = (config.switches || []).filter((sw) => sw.refId && !inventoryRefs.has(sw.refId));
+  const autoIds = new Set(fromInventory.map((sw) => sw.id));
+  const manual = configured.filter((sw) => sw.refId && (!inventoryRefs.has(sw.refId) || sw.duplicateOf || !autoIds.has(sw.id)));
   return [...fromInventory, ...manual];
 }
 
 function buildSwitches(config, inventory, rows, seriesByRef) {
-  const configured = switchConfigsForInventory(config, inventory);
+  const configured = switchConfigsForInventory(config, inventory).filter((sw) => !sw.hidden && !sw.deleted);
 
   return configured.map((sw) => {
     const query = inventory.find((item) => item.refId === sw.refId);
@@ -996,8 +1000,21 @@ function Select({ value, options, onChange }) {
   return <select value={value || ''} onChange={(event) => onChange(event.target.value)}><option value="">Automatico</option>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>;
 }
 
+function ComboInput({ value, options, onChange, placeholder = 'Automatico' }) {
+  const id = useMemo(() => `mg-list-${Math.random().toString(36).slice(2)}`, []);
+  return (
+    <>
+      <input list={id} value={value || ''} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
+      <datalist id={id}>
+        {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </datalist>
+    </>
+  );
+}
+
 function ConfigEditor({ value, onChange, context }) {
   const [tab, setTab] = useState('switches');
+  const [openCards, setOpenCards] = useState({});
   const config = normalizeConfig(value);
   const inventory = useMemo(() => queryInventory({ series: context.data || [] }), [context.data]);
   const visibleSwitches = switchConfigsForInventory(config, inventory);
@@ -1007,6 +1024,21 @@ function ConfigEditor({ value, onChange, context }) {
   const updateSwitch = (index, patch) => {
     const switches = visibleSwitches.map((sw, i) => i === index ? { ...sw, ...patch } : sw);
     update({ ...config, switches });
+  };
+  const duplicateSwitch = (index) => {
+    const source = visibleSwitches[index];
+    if (!source) return;
+    const copyId = `${source.refId || source.id}-copy-${Date.now().toString(36)}`;
+    update({ ...config, switches: [...visibleSwitches, { ...source, id: copyId, duplicateOf: source.id || source.refId, hidden: false, deleted: false }] });
+  };
+  const deleteSwitch = (index) => {
+    const target = visibleSwitches[index];
+    if (!target) return;
+    const switches = visibleSwitches.filter((_, i) => i !== index);
+    const excludedSwitches = target.id === target.refId && !target.duplicateOf
+      ? Array.from(new Set([...(config.excludedSwitches || []), target.refId]))
+      : config.excludedSwitches;
+    update({ ...config, switches, excludedSwitches });
   };
   const updateConnection = (index, patch) => {
     const connections = config.connections.map((conn, i) => i === index ? { ...conn, ...patch } : conn);
@@ -1045,35 +1077,50 @@ function ConfigEditor({ value, onChange, context }) {
   return (
     <div className="mg-editor">
       <div className="mg-editor-tabs">
-        {['switches', 'connections', 'elements', 'rules', 'appearance', 'general'].map((name) => <button key={name} className={tab === name ? 'active' : ''} onClick={() => setTab(name)}>{name}</button>)}
+        {['switches', 'elements', 'rules', 'general'].map((name) => <button key={name} className={tab === name ? 'active' : ''} onClick={() => setTab(name)}>{name}</button>)}
       </div>
       {tab === 'switches' && <div>
-        <p className="mg-editor-hint">Cada query do painel vira um switch automaticamente pelo RefID. Configure aqui os campos de dados de cada query e posicione no mapa pelo botão Editar posições.</p>
+        <p className="mg-editor-hint">Cada query do painel vira um card de switch pelo RefID. Abra o card, configure os campos e depois posicione no mapa pelo botao Editar posicoes.</p>
         {visibleSwitches.map((sw, index) => {
           const query = inventory.find((item) => item.refId === sw.refId);
           const fieldOptions = (query?.fields || []).map((field) => ({ value: field.id, label: field.label }));
+          const cardOpen = openCards[sw.id] !== false;
+          const title = query?.name || sw.name || sw.refId || sw.id;
           return (
-            <div className="mg-editor-card" key={index}>
-              <label>Query do switch</label>
-              <Select value={sw.refId} options={inventory.map((query) => ({ value: query.refId, label: `${query.refId} - ${query.name}` }))} onChange={(refId) => updateSwitch(index, { id: refId, refId })} />
-              <small>Nome automatico: {query?.name || sw.refId}</small>
-              <label>Upload</label><Select value={sw.uploadField} options={fieldOptions} onChange={(uploadField) => updateSwitch(index, { uploadField })} />
-              <label>Download</label><Select value={sw.downloadField} options={fieldOptions} onChange={(downloadField) => updateSwitch(index, { downloadField })} />
-              <label>Status</label><Select value={sw.statusField} options={fieldOptions} onChange={(statusField) => updateSwitch(index, { statusField })} />
-              <label>Linha / Interface / Fluxo</label><Select value={sw.lineField} options={fieldOptions} onChange={(lineField) => updateSwitch(index, { lineField })} />
-              <label>Sentido do sinal</label>
-              <select value={sw.direction || 'Horario'} onChange={(event) => updateSwitch(index, { direction: event.target.value })}><option>Horario</option><option>Anti-horario</option><option>Entrada</option><option>Saida</option></select>
-              <label>Link / drilldown (opcional)</label>
-              <input type="text" placeholder="ex: /d/zabbix-host?var-host=${host}" value={sw.link || ''} onChange={(event) => updateSwitch(index, { link: event.target.value })} />
-              <div className="mg-editor-row">
-                <label>Upload atencao abaixo de</label><input type="number" value={sw.thresholds?.uploadWarnBps ?? defaultThresholds.uploadWarnBps} onChange={(event) => updateSwitch(index, { thresholds: { ...(sw.thresholds || defaultThresholds), uploadWarnBps: Number(event.target.value) } })} />
-                <label>Upload critico abaixo de</label><input type="number" value={sw.thresholds?.uploadCritBps ?? defaultThresholds.uploadCritBps} onChange={(event) => updateSwitch(index, { thresholds: { ...(sw.thresholds || defaultThresholds), uploadCritBps: Number(event.target.value) } })} />
+            <div className={`mg-editor-card ${sw.hidden ? 'muted' : ''}`} key={sw.id || index}>
+              <div className="mg-switch-config-head">
+                <button className="mg-collapse" onClick={() => setOpenCards({ ...openCards, [sw.id]: !cardOpen })}>{cardOpen ? 'v' : '>'}</button>
+                <div><strong>{sw.refId} - {title}</strong><small>{sw.hidden ? 'Oculto no mapa' : 'Visivel no mapa'}</small></div>
+                <button onClick={() => updateSwitch(index, { hidden: !sw.hidden })}>{sw.hidden ? 'Mostrar' : 'Ocultar'}</button>
+                <button onClick={() => duplicateSwitch(index)}>Duplicar</button>
+                <button className="danger" onClick={() => deleteSwitch(index)}>Excluir</button>
               </div>
+              {cardOpen && <div className="mg-switch-config-body">
+                <details open><summary>Query</summary>
+                  <label>RefID da query</label>
+                  <ComboInput value={sw.refId} options={inventory.map((query) => ({ value: query.refId, label: `${query.refId} - ${query.name}` }))} onChange={(refId) => updateSwitch(index, { id: sw.duplicateOf ? sw.id : refId, refId })} />
+                  <small>Nome automatico: {query?.name || sw.refId}</small>
+                </details>
+                <details><summary>Upload</summary><ComboInput value={sw.uploadField} options={fieldOptions} onChange={(uploadField) => updateSwitch(index, { uploadField })} /></details>
+                <details><summary>Download</summary><ComboInput value={sw.downloadField} options={fieldOptions} onChange={(downloadField) => updateSwitch(index, { downloadField })} /></details>
+                <details><summary>Status</summary><ComboInput value={sw.statusField} options={fieldOptions} onChange={(statusField) => updateSwitch(index, { statusField })} /></details>
+                <details><summary>Linha / Interface / Fluxo</summary>
+                  <ComboInput value={sw.lineField} options={fieldOptions} onChange={(lineField) => updateSwitch(index, { lineField })} />
+                  <label>Sentido do sinal</label>
+                  <ComboInput value={sw.direction || 'Horario'} options={[{ value: 'Horario', label: 'Horario' }, { value: 'Anti-horario', label: 'Anti-horario' }, { value: 'Entrada', label: 'Entrada' }, { value: 'Saida', label: 'Saida' }]} onChange={(direction) => updateSwitch(index, { direction })} />
+                </details>
+                <details><summary>Drilldown</summary><input type="text" placeholder="ex: /d/zabbix-host?var-host=${host}" value={sw.link || ''} onChange={(event) => updateSwitch(index, { link: event.target.value })} /></details>
+                <details><summary>Thresholds</summary>
+                  <div className="mg-editor-row">
+                    <label>Upload atencao abaixo de</label><input type="number" value={sw.thresholds?.uploadWarnBps ?? defaultThresholds.uploadWarnBps} onChange={(event) => updateSwitch(index, { thresholds: { ...(sw.thresholds || defaultThresholds), uploadWarnBps: Number(event.target.value) } })} />
+                    <label>Upload critico abaixo de</label><input type="number" value={sw.thresholds?.uploadCritBps ?? defaultThresholds.uploadCritBps} onChange={(event) => updateSwitch(index, { thresholds: { ...(sw.thresholds || defaultThresholds), uploadCritBps: Number(event.target.value) } })} />
+                  </div>
+                </details>
+              </div>}
             </div>
           );
         })}
-      </div>}
-      {tab === 'connections' && <div>
+      </div>}      {tab === 'connections' && <div>
         <button className="mg-editor-add" onClick={addConnection}>+ Adicionar conexao</button>
         {config.connections.map((conn, index) => {
           const source = config.switches.find((sw) => sw.id === conn.from) || config.switches.find((sw) => sw.id === conn.to);
