@@ -237,10 +237,22 @@ function normalizeConfig(config) {
   };
 }
 
+function switchConfigsForInventory(config, inventory) {
+  const byRef = Object.fromEntries((config.switches || []).map((sw) => [sw.refId || sw.id, sw]));
+  const fromInventory = (inventory || []).map((query) => ({
+    id: query.refId,
+    refId: query.refId,
+    direction: 'Horario',
+    thresholds: defaultThresholds,
+    ...(byRef[query.refId] || {}),
+  }));
+  const inventoryRefs = new Set(fromInventory.map((sw) => sw.refId));
+  const manual = (config.switches || []).filter((sw) => sw.refId && !inventoryRefs.has(sw.refId));
+  return [...fromInventory, ...manual];
+}
+
 function buildSwitches(config, inventory, rows, seriesByRef) {
-  const configured = config.switches.length
-    ? config.switches
-    : inventory.map((query) => ({ id: query.refId, refId: query.refId, direction: 'Horario', thresholds: defaultThresholds }));
+  const configured = switchConfigsForInventory(config, inventory);
 
   return configured.map((sw) => {
     const query = inventory.find((item) => item.refId === sw.refId);
@@ -988,11 +1000,12 @@ function ConfigEditor({ value, onChange, context }) {
   const [tab, setTab] = useState('switches');
   const config = normalizeConfig(value);
   const inventory = useMemo(() => queryInventory({ series: context.data || [] }), [context.data]);
-  const switchOptions = config.switches.map((sw) => ({ value: sw.id, label: inventory.find((q) => q.refId === sw.refId)?.name || sw.refId || sw.id }));
+  const visibleSwitches = switchConfigsForInventory(config, inventory);
+  const switchOptions = visibleSwitches.map((sw) => ({ value: sw.id, label: inventory.find((q) => q.refId === sw.refId)?.name || sw.refId || sw.id }));
 
   const update = (next) => onChange(normalizeConfig(next));
   const updateSwitch = (index, patch) => {
-    const switches = config.switches.map((sw, i) => i === index ? { ...sw, ...patch } : sw);
+    const switches = visibleSwitches.map((sw, i) => i === index ? { ...sw, ...patch } : sw);
     update({ ...config, switches });
   };
   const updateConnection = (index, patch) => {
@@ -1011,8 +1024,8 @@ function ConfigEditor({ value, onChange, context }) {
     update({ ...config, switches: [...config.switches, { id: available.refId, refId: available.refId, direction: 'Horario', thresholds: defaultThresholds }] });
   };
   const addConnection = () => {
-    if (config.switches.length < 2) return;
-    update({ ...config, connections: [...config.connections, { from: config.switches[0].id, to: config.switches[1].id, ring: 'primary', direction: 'Horario', thresholds: defaultThresholds }] });
+    if (visibleSwitches.length < 2) return;
+    update({ ...config, connections: [...config.connections, { from: visibleSwitches[0].id, to: visibleSwitches[1].id, ring: 'primary', direction: 'Horario', thresholds: defaultThresholds }] });
   };
   const updateRule = (index, patch) => {
     const rules = config.rules.map((rule, i) => i === index ? { ...rule, ...patch } : rule);
@@ -1035,8 +1048,8 @@ function ConfigEditor({ value, onChange, context }) {
         {['switches', 'connections', 'elements', 'rules', 'appearance', 'general'].map((name) => <button key={name} className={tab === name ? 'active' : ''} onClick={() => setTab(name)}>{name}</button>)}
       </div>
       {tab === 'switches' && <div>
-        <button className="mg-editor-add" onClick={addSwitch}>+ Adicionar switch por query</button>
-        {config.switches.map((sw, index) => {
+        <p className="mg-editor-hint">Cada query do painel vira um switch automaticamente pelo RefID. Configure aqui os campos de dados de cada query e posicione no mapa pelo botão Editar posições.</p>
+        {visibleSwitches.map((sw, index) => {
           const query = inventory.find((item) => item.refId === sw.refId);
           const fieldOptions = (query?.fields || []).map((field) => ({ value: field.id, label: field.label }));
           return (
