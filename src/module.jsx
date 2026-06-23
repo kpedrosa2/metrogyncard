@@ -378,7 +378,7 @@ function layout(switches, connections) {
   const rest = ids.filter((id) => !primary.includes(id) && !secondary.includes(id) && id !== byKey.emater);
   const targetByKey = {
     emater: { x: 4.9, y: 57.2, nodeX: 3.68, nodeY: 46.35 },
-    'sedi-metrogyn': { x: 14.0, y: 61.8, nodeX: 9.56, nodeY: 56.77 },
+    'sedi-metrogyn': { x: 14.0, y: 61.8, nodeX: 17.0, nodeY: 76.0 },
     seduce: { x: 13.7, y: 35.0, nodeX: 12.5, nodeY: 25.52 },
     seapa: { x: 22.6, y: 24.0, nodeX: 21.32, nodeY: 15.1 },
     sead: { x: 34.0, y: 18.0, nodeX: 33.09, nodeY: 9.9 },
@@ -391,7 +391,7 @@ function layout(switches, connections) {
     'goiasprev-ipasgo': { x: 86.2, y: 49.0, nodeX: 80.15, nodeY: 46.35 },
     detran: { x: 68.0, y: 80.5, nodeX: 65.44, nodeY: 82.81 },
     hugo: { x: 82.0, y: 69.0, nodeX: 74.5, nodeY: 70 },
-    crer: { x: 33.8, y: 80.5, nodeX: 32.5, nodeY: 80 },
+    crer: { x: 33.8, y: 80.5, nodeX: 40.8, nodeY: 75.6 },
   };
   const target = {};
   switches.forEach((sw) => {
@@ -565,6 +565,7 @@ function RingArrow({ tone, x, y, rotate }) {
 
 function FlowElement({ element, switches, rules, linkBase }) {
   if (element.enabled === false) return null;
+  if (element.type === 'line') return null;
   const target = elementTarget(element, switches) || {
     id: element.id,
     name: element.label || element.id || 'element',
@@ -604,12 +605,6 @@ function NetworkMap({ switches, connections, animateLinks, rules, elements, link
         <svg className="mg-links" viewBox="0 0 100 100" preserveAspectRatio="none">
           <line x1="7.87" y1="60.81" x2="12.13" y2="60.81" className="mg-link entry static" />
           <line x1="7.94" y1="49.35" x2="7.94" y2="60.81" className="mg-link entry static" />
-          {connections.filter((conn) => conn.ring === 'edge' || conn.ring === 'bridge').map((conn, index) => {
-            const from = byId[conn.from];
-            const to = byId[conn.to];
-            if (!from || !to) return null;
-            return <line key={index} x1={from.nodeX ?? from.x} y1={from.nodeY ?? from.y} x2={to.nodeX ?? to.x} y2={to.nodeY ?? to.y} className={`mg-link ${statusClass(conn.status)} ${conn.direction === 'Anti-horario' ? 'reverse' : ''} ${animateLinks ? '' : 'static'}`} />;
-          })}
         </svg>
         <div className="mg-ring-label primary"><span>ANEL</span><span>PRIMARIO</span></div>
         <div className="mg-ring-label secondary"><span>ANEL</span><span>SECUNDARIO</span></div>
