@@ -31,6 +31,7 @@ const defaults = {
     elements: [],
     rules: [],
     positions: {},
+    cardSizes: {},
     rings: {
       entry: { left: 3.6, top: 46.5, width: 10, height: 17.5 },
       primary: { left: 13.97, top: 14.06, width: 39.63, height: 70.83 },
@@ -223,6 +224,7 @@ function normalizeConfig(config) {
     elements: Array.isArray(current.elements) ? current.elements : [],
     rules: Array.isArray(current.rules) ? current.rules : [],
     positions: current.positions && typeof current.positions === 'object' ? current.positions : {},
+    cardSizes: current.cardSizes && typeof current.cardSizes === 'object' ? current.cardSizes : {},
     rings: {
       ...defaults.config.rings,
       ...(current.rings || {}),
@@ -516,7 +518,7 @@ function SiteCard({ site }) {
   );
 }
 
-function CompactSiteCard({ site, rules, link, blinkOnAlert, showTooltips, editMode, onDragPosition }) {
+function CompactSiteCard({ site, rules, link, blinkOnAlert, showTooltips, editMode, onDragPosition, onResizeCard }) {
   const cls = statusClass(site.status);
   const clockwise = site.clockwise || 'Proximo';
   const counter = site.counter || 'Anterior';
@@ -524,6 +526,12 @@ function CompactSiteCard({ site, rules, link, blinkOnAlert, showTooltips, editMo
   const blink = (blinkOnAlert && cls === 'down') || effects.blink;
   const href = editMode ? '' : site.link || resolveLink(link, site);
   const style = { left: `${site.x}%`, top: `${site.y}%` };
+  if (site.cardWidth) style.width = `${site.cardWidth}px`;
+  if (site.cardHeight) style.minHeight = `${site.cardHeight}px`;
+  if (site.cardWidth || site.cardHeight) {
+    const scale = Math.max(0.78, Math.min(1.25, Math.min(Number(site.cardWidth || 118) / 118, Number(site.cardHeight || 58) / 58)));
+    style['--card-scale'] = scale.toFixed(2);
+  }
   if (effects.border) style['--site-color'] = effects.border;
   if (effects.background) style.background = effects.background;
   const className = `mg-site-card ${cls} ${blink ? 'blink' : ''} ${href ? 'linked' : ''} ${editMode ? 'editable' : ''}`;
@@ -547,6 +555,7 @@ function CompactSiteCard({ site, rules, link, blinkOnAlert, showTooltips, editMo
           <div className="mg-metric"><b>RX:</b>{site.upload}</div>
         </div>
       </div>
+      {editMode && <span className="mg-card-resize" onPointerDown={(event) => onResizeCard(event, site)} />}
       {showTooltips && <SiteTooltip site={site} />}
     </Tag>
   );
@@ -630,7 +639,7 @@ function FlowElement({ element, switches, rules, linkBase, editMode, onDragEleme
   );
 }
 
-function NetworkMap({ switches, connections, animateLinks, rules, elements, rings, linkBase, blinkOnAlert, showTooltips, editMode, onMoveSwitch, onMoveElement, onMoveRing, onResizeRing }) {
+function NetworkMap({ switches, connections, animateLinks, rules, elements, rings, linkBase, blinkOnAlert, showTooltips, editMode, onMoveSwitch, onMoveElement, onMoveRing, onResizeRing, onResizeCard }) {
   const byId = Object.fromEntries(switches.map((sw) => [sw.id, sw]));
   const stageRef = useRef(null);
   const pointFromEvent = (event) => {
@@ -670,6 +679,29 @@ function NetworkMap({ switches, connections, animateLinks, rules, elements, ring
       window.removeEventListener('pointerup', up);
     };
     move(event);
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up, { once: true });
+  };
+  const startResizeCard = (event, site) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const card = event.currentTarget.closest('.mg-site-card');
+    const rect = card?.getBoundingClientRect();
+    const baseWidth = Number(site.cardWidth || rect?.width || 118);
+    const baseHeight = Number(site.cardHeight || rect?.height || 58);
+    const move = (moveEvent) => {
+      onResizeCard(site, {
+        width: baseWidth + moveEvent.clientX - startX,
+        height: baseHeight + moveEvent.clientY - startY,
+      });
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up, { once: true });
   };
@@ -714,12 +746,19 @@ function NetworkMap({ switches, connections, animateLinks, rules, elements, ring
           </div>
         ))}
         {ringArrows.map(([tone, x, y, rotate], index) => <RingArrow key={index} tone={tone} x={x} y={y} rotate={rotate} />)}
-        <svg className="mg-links" viewBox="0 0 100 100" preserveAspectRatio="none" />
+        <svg className="mg-links" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <defs>
+            <marker id="mg-entry-arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+              <path d="M0,0 L6,3 L0,6 Z" fill="#1aa7ff" />
+            </marker>
+          </defs>
+          <line x1="8.8" y1="54.7" x2="15.7" y2="48.4" className="mg-link entry emater static" markerEnd="url(#mg-entry-arrow)" />
+        </svg>
         <div className="mg-ring-label primary" style={ringCenter(rings.primary)}><span>ANEL</span><span>PRIMARIO</span></div>
         <div className="mg-ring-label secondary" style={ringCenter(rings.secondary)}><span>ANEL</span><span>SECUNDARIO</span></div>
         {switches.map((site) => <SwitchNode key={`${site.id}-node`} site={site} blinkOnAlert={blinkOnAlert} editMode={editMode} onDragPosition={startDragSwitch} />)}
         {(elements || []).map((element, index) => <FlowElement key={element.id || index} element={element} switches={switches} rules={rules} linkBase={linkBase} editMode={editMode} onDragElement={startDragElement} />)}
-        {switches.map((site) => <CompactSiteCard key={site.id} site={site} rules={rules} link={linkBase} blinkOnAlert={blinkOnAlert} showTooltips={showTooltips && !editMode} editMode={editMode} onDragPosition={startDragSwitch} />)}
+        {switches.map((site) => <CompactSiteCard key={site.id} site={site} rules={rules} link={linkBase} blinkOnAlert={blinkOnAlert} showTooltips={showTooltips && !editMode} editMode={editMode} onDragPosition={startDragSwitch} onResizeCard={startResizeCard} />)}
       </div>
     </div>
   );
@@ -843,7 +882,8 @@ function Panel({ options, data, width, height, onOptionsChange }) {
   const inventory = queryInventory(data);
   const rows = readFrames(data);
   const seriesByRef = readSeries(data);
-  const switches = layout(buildSwitches(config, inventory, rows, seriesByRef), config.connections, config.positions);
+  const switches = layout(buildSwitches(config, inventory, rows, seriesByRef), config.connections, config.positions)
+    .map((sw) => ({ ...sw, ...(config.cardSizes?.[sw.id] || {}) }));
   const connections = buildConnections(config, switches, rows);
   const upload = switches.reduce((sum, sw) => sum + sw.uploadRaw, 0);
   const download = switches.reduce((sum, sw) => sum + sw.downloadRaw, 0);
@@ -860,6 +900,20 @@ function Panel({ options, data, width, height, onOptionsChange }) {
       ? { nodeX: Number(point.x.toFixed(2)), nodeY: Number(point.y.toFixed(2)) }
       : { x: Number(point.x.toFixed(2)), y: Number(point.y.toFixed(2)) };
     updateConfig({ ...config, positions: { ...config.positions, [site.id]: { ...current, ...patch } } });
+  };
+  const resizeCard = (site, size) => {
+    const current = config.cardSizes?.[site.id] || {};
+    updateConfig({
+      ...config,
+      cardSizes: {
+        ...config.cardSizes,
+        [site.id]: {
+          ...current,
+          cardWidth: Math.round(Math.max(86, Math.min(260, size.width))),
+          cardHeight: Math.round(Math.max(42, Math.min(180, size.height))),
+        },
+      },
+    });
   };
   const moveElement = (element, point) => {
     const elements = config.elements.map((item) => item === element || item.id === element.id ? { ...item, x: Number(point.x.toFixed(2)), y: Number(point.y.toFixed(2)) } : item);
@@ -918,7 +972,7 @@ function Panel({ options, data, width, height, onOptionsChange }) {
           <button className={`mg-position-toggle ${editPositions ? 'active' : ''}`} onClick={() => setEditPositions(!editPositions)}>{editPositions ? 'Salvar posições' : 'Editar posições'}</button>
         </header>
         {opts.showTopCards && <TopCards switches={switches} capacity={capacity} />}
-        <div className="mg-main" style={{ '--map-height': `${Number(config.layout?.mapHeight || defaults.config.layout.mapHeight)}px` }}><NetworkMap switches={switches} connections={connections} animateLinks={opts.animateLinks} rules={config.rules} elements={config.elements} rings={config.rings} linkBase={opts.linkBase} blinkOnAlert={opts.blinkOnAlert} showTooltips={opts.showTooltips} editMode={editPositions} onMoveSwitch={moveSwitch} onMoveElement={moveElement} onMoveRing={moveRing} onResizeRing={resizeRing} /><SidePanel showLegend={opts.showLegend} showMiniFlow={opts.showMiniFlow} showTraffic={opts.showTraffic} upload={upload} download={download} /></div>
+        <div className="mg-main" style={{ '--map-height': `${Number(config.layout?.mapHeight || defaults.config.layout.mapHeight)}px` }}><NetworkMap switches={switches} connections={connections} animateLinks={opts.animateLinks} rules={config.rules} elements={config.elements} rings={config.rings} linkBase={opts.linkBase} blinkOnAlert={opts.blinkOnAlert} showTooltips={opts.showTooltips} editMode={editPositions} onMoveSwitch={moveSwitch} onMoveElement={moveElement} onMoveRing={moveRing} onResizeRing={resizeRing} onResizeCard={resizeCard} /><SidePanel showLegend={opts.showLegend} showMiniFlow={opts.showMiniFlow} showTraffic={opts.showTraffic} upload={upload} download={download} /></div>
         {editPositions && <div className="mg-alarm-resize" onPointerDown={startResizeMap} title="Arraste para ajustar a altura do mapa" />}
         {opts.showAlarms && <AlarmTable switches={switches} />}
       </main>
