@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { PanelPlugin } from '@grafana/data';
 import './styles.css';
 
@@ -30,6 +30,7 @@ const defaults = {
     connections: [],
     elements: [],
     rules: [],
+    positions: {},
     appearance: {
       cardWidth: 132,
       lineWidth: 1.1,
@@ -213,6 +214,7 @@ function normalizeConfig(config) {
     connections: Array.isArray(current.connections) ? current.connections : [],
     elements: Array.isArray(current.elements) ? current.elements : [],
     rules: Array.isArray(current.rules) ? current.rules : [],
+    positions: current.positions && typeof current.positions === 'object' ? current.positions : {},
     appearance: { ...defaults.config.appearance, ...(current.appearance || {}) },
   };
 }
@@ -368,7 +370,7 @@ function place(ids, cx, cy, rx, ry, start, span, target) {
   });
 }
 
-function layout(switches, connections) {
+function layout(switches, connections, positions = {}) {
   const primaryOrder = ['sedi-metrogyn', 'seduce', 'seapa', 'sead', 'ptt-ufg', 'fapeg', 'sedi-pplt', 'radio-ufg', 'crer'];
   const secondaryOrder = ['ptt-ufg', 'semad', 'ccon', 'goiasprev-ipasgo', 'hugo', 'detran', 'radio-ufg'];
   const byKey = Object.fromEntries(switches.map((sw) => [canonicalSite(sw.name), sw.id]));
@@ -401,12 +403,15 @@ function layout(switches, connections) {
   place(rest, 55, 52, 7, 21, 240, 240, target);
   return switches.map((sw, index) => {
     const key = canonicalSite(sw.name);
+    const base = target[sw.id] || { ...point(50, 50, 31, 31, (index / Math.max(switches.length, 1)) * 360), nodeX: 50, nodeY: 50 };
+    const override = positions[sw.id] || positions[sw.refId] || positions[key] || {};
     return {
       ...sw,
       segment: key,
       clockwise: nextName(key, primaryOrder, secondaryOrder, switches),
       counter: prevName(key, primaryOrder, secondaryOrder, switches),
-      ...(target[sw.id] || { ...point(50, 50, 31, 31, (index / Math.max(switches.length, 1)) * 360), nodeX: 50, nodeY: 50 }),
+      ...base,
+      ...override,
     };
   });
 }
@@ -495,21 +500,21 @@ function SiteCard({ site }) {
   );
 }
 
-function CompactSiteCard({ site, rules, link, blinkOnAlert, showTooltips }) {
+function CompactSiteCard({ site, rules, link, blinkOnAlert, showTooltips, editMode, onDragPosition }) {
   const cls = statusClass(site.status);
   const clockwise = site.clockwise || 'Proximo';
   const counter = site.counter || 'Anterior';
   const effects = evalRules(site, rules);
   const blink = (blinkOnAlert && cls === 'down') || effects.blink;
-  const href = site.link || resolveLink(link, site);
+  const href = editMode ? '' : site.link || resolveLink(link, site);
   const style = { left: `${site.x}%`, top: `${site.y}%` };
   if (effects.border) style['--site-color'] = effects.border;
   if (effects.background) style.background = effects.background;
-  const className = `mg-site-card ${cls} ${blink ? 'blink' : ''} ${href ? 'linked' : ''}`;
+  const className = `mg-site-card ${cls} ${blink ? 'blink' : ''} ${href ? 'linked' : ''} ${editMode ? 'editable' : ''}`;
   const Tag = href ? 'a' : 'div';
   const tagProps = href ? { href, target: '_blank', rel: 'noreferrer' } : {};
   return (
-    <Tag className={className} style={style} {...tagProps}>
+    <Tag className={className} style={style} onPointerDown={editMode ? (event) => onDragPosition(event, site, 'card') : undefined} {...tagProps}>
       <div className="mg-card-head">
         <strong style={effects.textColor ? { color: effects.textColor } : undefined}>{site.name}</strong>
         {effects.badge && <span className="mg-badge" style={effects.border ? { color: effects.border } : undefined}>{effects.badge}</span>}
@@ -531,11 +536,11 @@ function CompactSiteCard({ site, rules, link, blinkOnAlert, showTooltips }) {
   );
 }
 
-function SwitchNode({ site, blinkOnAlert }) {
+function SwitchNode({ site, blinkOnAlert, editMode, onDragPosition }) {
   const cls = statusClass(site.status);
   const blink = blinkOnAlert && cls === 'down';
   return (
-    <div className={`mg-switch-node ${blink ? 'blink' : ''}`} style={{ left: `${site.nodeX ?? site.x}%`, top: `${site.nodeY ?? site.y}%` }}>
+    <div className={`mg-switch-node ${blink ? 'blink' : ''} ${editMode ? 'editable' : ''}`} onPointerDown={editMode ? (event) => onDragPosition(event, site, 'node') : undefined} style={{ left: `${site.nodeX ?? site.x}%`, top: `${site.nodeY ?? site.y}%` }}>
       <SwitchIcon state={cls} />
     </div>
   );
@@ -563,7 +568,7 @@ function RingArrow({ tone, x, y, rotate }) {
   return <span className={`mg-flow-arrow ${tone}`} style={{ left: `${x}%`, top: `${y}%`, transform: `translate(-50%, -50%) rotate(${rotate}deg)` }} />;
 }
 
-function FlowElement({ element, switches, rules, linkBase }) {
+function FlowElement({ element, switches, rules, linkBase, editMode, onDragElement }) {
   if (element.enabled === false) return null;
   if (element.type === 'line') return null;
   const target = elementTarget(element, switches) || {
@@ -583,21 +588,62 @@ function FlowElement({ element, switches, rules, linkBase }) {
   };
   if (effects.background) style.background = effects.background;
   const text = renderTemplate(element.text || element.label || '${name}: ${value}', target);
-  const href = element.link || resolveLink(linkBase, target);
+  const href = editMode ? '' : element.link || resolveLink(linkBase, target);
   const Tag = href ? 'a' : 'div';
   const props = href ? { href, target: '_blank', rel: 'noreferrer' } : {};
   return (
-    <Tag className={`mg-flow-element ${element.type || 'rect'} ${effects.blink ? 'blink' : ''}`} style={style} {...props}>
+    <Tag className={`mg-flow-element ${element.type || 'rect'} ${effects.blink ? 'blink' : ''} ${editMode ? 'editable' : ''}`} onPointerDown={editMode ? (event) => onDragElement(event, element) : undefined} style={style} {...props}>
       <span>{text}</span>
     </Tag>
   );
 }
 
-function NetworkMap({ switches, connections, animateLinks, rules, elements, linkBase, blinkOnAlert, showTooltips }) {
+function NetworkMap({ switches, connections, animateLinks, rules, elements, linkBase, blinkOnAlert, showTooltips, editMode, onMoveSwitch, onMoveElement }) {
   const byId = Object.fromEntries(switches.map((sw) => [sw.id, sw]));
+  const stageRef = useRef(null);
+  const pointFromEvent = (event) => {
+    const rect = stageRef.current?.getBoundingClientRect();
+    if (!rect) return null;
+    return {
+      x: Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100)),
+      y: Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100)),
+    };
+  };
+  const startDragSwitch = (event, site, target) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    const move = (moveEvent) => {
+      const point = pointFromEvent(moveEvent);
+      if (point) onMoveSwitch(site, target, point);
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    move(event);
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up, { once: true });
+  };
+  const startDragElement = (event, element) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    const move = (moveEvent) => {
+      const point = pointFromEvent(moveEvent);
+      if (point) onMoveElement(element, point);
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    move(event);
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up, { once: true });
+  };
   return (
-    <div className="mg-map">
-      <div className="mg-stage">
+    <div className={`mg-map ${editMode ? 'editing' : ''}`}>
+      <div className="mg-stage" ref={stageRef}>
         <div className="mg-ring-circle entry" />
         <div className="mg-ring-circle primary" />
         <div className="mg-ring-circle secondary" />
@@ -608,9 +654,9 @@ function NetworkMap({ switches, connections, animateLinks, rules, elements, link
         </svg>
         <div className="mg-ring-label primary"><span>ANEL</span><span>PRIMARIO</span></div>
         <div className="mg-ring-label secondary"><span>ANEL</span><span>SECUNDARIO</span></div>
-        {switches.map((site) => <SwitchNode key={`${site.id}-node`} site={site} blinkOnAlert={blinkOnAlert} />)}
-        {(elements || []).map((element, index) => <FlowElement key={element.id || index} element={element} switches={switches} rules={rules} linkBase={linkBase} />)}
-        {switches.map((site) => <CompactSiteCard key={site.id} site={site} rules={rules} link={linkBase} blinkOnAlert={blinkOnAlert} showTooltips={showTooltips} />)}
+        {switches.map((site) => <SwitchNode key={`${site.id}-node`} site={site} blinkOnAlert={blinkOnAlert} editMode={editMode} onDragPosition={startDragSwitch} />)}
+        {(elements || []).map((element, index) => <FlowElement key={element.id || index} element={element} switches={switches} rules={rules} linkBase={linkBase} editMode={editMode} onDragElement={startDragElement} />)}
+        {switches.map((site) => <CompactSiteCard key={site.id} site={site} rules={rules} link={linkBase} blinkOnAlert={blinkOnAlert} showTooltips={showTooltips && !editMode} editMode={editMode} onDragPosition={startDragSwitch} />)}
       </div>
     </div>
   );
@@ -727,13 +773,14 @@ function AlarmTable({ switches }) {
   );
 }
 
-function Panel({ options, data, width, height }) {
+function Panel({ options, data, width, height, onOptionsChange }) {
   const opts = { ...defaults, ...options };
   const config = normalizeConfig(opts.config);
+  const [editPositions, setEditPositions] = useState(false);
   const inventory = queryInventory(data);
   const rows = readFrames(data);
   const seriesByRef = readSeries(data);
-  const switches = layout(buildSwitches(config, inventory, rows, seriesByRef), config.connections);
+  const switches = layout(buildSwitches(config, inventory, rows, seriesByRef), config.connections, config.positions);
   const connections = buildConnections(config, switches, rows);
   const upload = switches.reduce((sum, sw) => sum + sw.uploadRaw, 0);
   const download = switches.reduce((sum, sw) => sum + sw.downloadRaw, 0);
@@ -741,12 +788,30 @@ function Panel({ options, data, width, height }) {
   const loads = switches.map((sw) => Math.min(100, ((sw.uploadRaw + sw.downloadRaw) / capacityBps) * 100));
   const capacity = loads.length ? loads.reduce((sum, value) => sum + value, 0) / loads.length : 0;
 
+  const updateConfig = (nextConfig) => {
+    if (typeof onOptionsChange === 'function') onOptionsChange({ ...opts, config: normalizeConfig(nextConfig) });
+  };
+  const moveSwitch = (site, target, point) => {
+    const current = config.positions?.[site.id] || {};
+    const patch = target === 'node'
+      ? { nodeX: Number(point.x.toFixed(2)), nodeY: Number(point.y.toFixed(2)) }
+      : { x: Number(point.x.toFixed(2)), y: Number(point.y.toFixed(2)) };
+    updateConfig({ ...config, positions: { ...config.positions, [site.id]: { ...current, ...patch } } });
+  };
+  const moveElement = (element, point) => {
+    const elements = config.elements.map((item) => item === element || item.id === element.id ? { ...item, x: Number(point.x.toFixed(2)), y: Number(point.y.toFixed(2)) } : item);
+    updateConfig({ ...config, elements });
+  };
+
   return (
     <div className="mg-root" style={{ width, height }}>
       <main className="mg-shell">
-        <header className="mg-header"><h2><span className="mg-logo">⚙</span>{opts.title}</h2></header>
+        <header className="mg-header">
+          <h2><span className="mg-logo">⚙</span>{opts.title}</h2>
+          <button className={`mg-position-toggle ${editPositions ? 'active' : ''}`} onClick={() => setEditPositions(!editPositions)}>{editPositions ? 'Salvar posições' : 'Editar posições'}</button>
+        </header>
         {opts.showTopCards && <TopCards switches={switches} capacity={capacity} />}
-        <div className="mg-main"><NetworkMap switches={switches} connections={connections} animateLinks={opts.animateLinks} rules={config.rules} elements={config.elements} linkBase={opts.linkBase} blinkOnAlert={opts.blinkOnAlert} showTooltips={opts.showTooltips} /><SidePanel showLegend={opts.showLegend} showMiniFlow={opts.showMiniFlow} showTraffic={opts.showTraffic} upload={upload} download={download} /></div>
+        <div className="mg-main"><NetworkMap switches={switches} connections={connections} animateLinks={opts.animateLinks} rules={config.rules} elements={config.elements} linkBase={opts.linkBase} blinkOnAlert={opts.blinkOnAlert} showTooltips={opts.showTooltips} editMode={editPositions} onMoveSwitch={moveSwitch} onMoveElement={moveElement} /><SidePanel showLegend={opts.showLegend} showMiniFlow={opts.showMiniFlow} showTraffic={opts.showTraffic} upload={upload} download={download} /></div>
         {opts.showAlarms && <AlarmTable switches={switches} />}
       </main>
     </div>

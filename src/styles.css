@@ -53,6 +53,24 @@
   font-size: 11px;
 }
 
+.mg-position-toggle {
+  border: 1px solid #245985;
+  border-radius: 5px;
+  background: rgba(13, 42, 68, 0.92);
+  color: #8fd3ff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.mg-position-toggle.active {
+  border-color: #39d353;
+  background: rgba(26, 83, 42, 0.9);
+  color: #dcffe4;
+  box-shadow: 0 0 14px rgba(57, 211, 83, 0.28);
+}
+
 .mg-topcards {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -160,6 +178,28 @@
   border-radius: 8px;
   background: radial-gradient(circle at 50% 50%, rgba(8, 20, 32, 0.42), rgba(3, 8, 15, 0.12) 62%, transparent);
   overflow: visible;
+}
+
+.mg-map.editing {
+  outline: 1px dashed rgba(96, 191, 255, 0.7);
+  outline-offset: -5px;
+  cursor: grab;
+}
+
+.mg-map.editing::after {
+  content: "Modo edição: arraste cards, switches e elementos";
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  z-index: 20;
+  border: 1px solid rgba(96, 191, 255, 0.35);
+  border-radius: 5px;
+  background: rgba(5, 13, 24, 0.86);
+  color: #8fd3ff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 5px 8px;
+  pointer-events: none;
 }
 
 .mg-stage {
@@ -295,6 +335,18 @@
   white-space: pre-line;
 }
 
+.mg-flow-element.editable,
+.mg-site-card.editable,
+.mg-switch-node.editable {
+  cursor: grab;
+}
+
+.mg-flow-element.editable:active,
+.mg-site-card.editable:active,
+.mg-switch-node.editable:active {
+  cursor: grabbing;
+}
+
 .mg-flow-element.circle {
   border-radius: 50%;
 }
@@ -357,6 +409,13 @@
   box-shadow: 0 0 16px color-mix(in srgb, var(--site-color), transparent 70%), inset 0 1px 0 rgba(255,255,255,.05);
   padding: 5px 7px;
   z-index: 4;
+}
+
+.mg-map.editing .mg-site-card,
+.mg-map.editing .mg-switch-node,
+.mg-map.editing .mg-flow-element {
+  outline: 1px dashed rgba(143, 211, 255, 0.6);
+  outline-offset: 3px;
 }
 
 .mg-card-body {
