@@ -240,23 +240,17 @@ function normalizeConfig(config) {
 }
 
 function switchConfigsForInventory(config, inventory) {
-  const excluded = new Set(config.excludedSwitches || []);
-  const configured = config.switches || [];
-  const fromInventory = (inventory || []).map((query) => ({
-    id: query.refId,
-    refId: query.refId,
-    direction: 'Horario',
-    thresholds: defaultThresholds,
-    ...(configured.find((sw) => sw.refId === query.refId && !sw.duplicateOf && (sw.id === query.refId || !sw.id)) || {}),
-  })).filter((sw) => !excluded.has(sw.refId) && !excluded.has(sw.id));
-  const inventoryRefs = new Set(fromInventory.map((sw) => sw.refId));
-  const autoIds = new Set(fromInventory.map((sw) => sw.id));
-  const manual = configured.filter((sw) => sw.refId && (!inventoryRefs.has(sw.refId) || sw.duplicateOf || !autoIds.has(sw.id)));
-  return [...fromInventory, ...manual];
+  return (config.switches || []).map((sw, index) => ({
+    id: sw.id || sw.refId || `switch-${index + 1}`,
+    refId: sw.refId || '',
+    direction: sw.direction || 'Horario',
+    thresholds: { ...defaultThresholds, ...(sw.thresholds || {}) },
+    ...sw,
+  }));
 }
 
 function buildSwitches(config, inventory, rows, seriesByRef) {
-  const configured = switchConfigsForInventory(config, inventory).filter((sw) => !sw.hidden && !sw.deleted);
+  const configured = switchConfigsForInventory(config, inventory).filter((sw) => sw.refId && !sw.hidden && !sw.deleted);
 
   return configured.map((sw) => {
     const query = inventory.find((item) => item.refId === sw.refId);
@@ -1015,17 +1009,14 @@ function ConfigEditor({ value, onChange, context }) {
   const duplicateSwitch = (index) => {
     const source = visibleSwitches[index];
     if (!source) return;
-    const copyId = `${source.refId || source.id}-copy-${Date.now().toString(36)}`;
+    const copyId = `${source.refId || source.id || 'switch'}-copy-${Date.now().toString(36)}`;
     update({ ...config, switches: [...visibleSwitches, { ...source, id: copyId, duplicateOf: source.id || source.refId, hidden: false, deleted: false }] });
   };
   const deleteSwitch = (index) => {
     const target = visibleSwitches[index];
     if (!target) return;
     const switches = visibleSwitches.filter((_, i) => i !== index);
-    const excludedSwitches = target.id === target.refId && !target.duplicateOf
-      ? Array.from(new Set([...(config.excludedSwitches || []), target.refId]))
-      : config.excludedSwitches;
-    update({ ...config, switches, excludedSwitches });
+    update({ ...config, switches });
   };
   const updateConnection = (index, patch) => {
     const connections = config.connections.map((conn, i) => i === index ? { ...conn, ...patch } : conn);
@@ -1038,20 +1029,13 @@ function ConfigEditor({ value, onChange, context }) {
   const addElement = () => update({ ...config, elements: [...config.elements, { id: `element-${config.elements.length + 1}`, type: 'rect', x: 50, y: 50, w: 10, h: 5, scope: 'all', metric: 'traffic', text: '${name}: ${value}', color: '#42b8ff', enabled: true }] });
   const removeElement = (index) => update({ ...config, elements: config.elements.filter((_, i) => i !== index) });
   const addSwitch = () => {
-    const existingRefs = new Set(visibleSwitches.map((sw) => sw.refId));
-    const available = inventory.find((query) => !existingRefs.has(query.refId)) || inventory[0];
-    const refId = available?.refId || `manual-${Date.now().toString(36)}`;
     const newSwitch = {
-      id: existingRefs.has(refId) ? `${refId}-manual-${Date.now().toString(36)}` : refId,
-      refId,
+      id: `switch-${Date.now().toString(36)}`,
+      refId: '',
       direction: 'Horario',
       thresholds: defaultThresholds,
     };
-    update({
-      ...config,
-      switches: [...visibleSwitches, newSwitch],
-      excludedSwitches: (config.excludedSwitches || []).filter((item) => item !== refId && item !== newSwitch.id),
-    });
+    update({ ...config, switches: [...visibleSwitches, newSwitch] });
   };
   const addConnection = () => {
     if (visibleSwitches.length < 2) return;
@@ -1079,17 +1063,17 @@ function ConfigEditor({ value, onChange, context }) {
       </div>
       {tab === 'switches' && <div>
         <button className="mg-editor-add" onClick={addSwitch}>+ Adicionar switch</button>
-        <p className="mg-editor-hint">Cada query do painel vira um card de switch pelo RefID. Abra o card, configure os campos e depois posicione no mapa pelo botao Editar posicoes.</p>
+        <p className="mg-editor-hint">Clique em Adicionar switch para criar um card vazio. Depois escolha o RefID da query e configure os itens; somente esse switch sera incluido no mapa.</p>
         {visibleSwitches.map((sw, index) => {
           const query = inventory.find((item) => item.refId === sw.refId);
           const fieldOptions = (query?.fields || []).map((field) => ({ value: field.id, label: field.label }));
           const cardOpen = openCards[sw.id] !== false;
-          const title = query?.name || sw.name || sw.refId || sw.id;
+          const title = query?.name || sw.name || sw.refId || 'Selecione o RefID';
           return (
             <div className={`mg-editor-card ${sw.hidden ? 'muted' : ''}`} key={sw.id || index}>
               <div className="mg-switch-config-head">
                 <button className="mg-collapse" onClick={() => setOpenCards({ ...openCards, [sw.id]: !cardOpen })}>{cardOpen ? 'v' : '>'}</button>
-                <div><strong>{sw.refId} - {title}</strong><small>{sw.hidden ? 'Oculto no mapa' : 'Visivel no mapa'}</small></div>
+                <div><strong>{sw.refId || 'Novo switch'} - {title}</strong><small>{sw.hidden ? 'Oculto no mapa' : sw.refId ? 'Visivel no mapa' : 'Aguardando RefID'}</small></div>
                 <button onClick={() => updateSwitch(index, { hidden: !sw.hidden })}>{sw.hidden ? 'Mostrar' : 'Ocultar'}</button>
                 <button onClick={() => duplicateSwitch(index)}>Duplicar</button>
                 <button className="danger" onClick={() => deleteSwitch(index)}>Excluir</button>
@@ -1097,8 +1081,8 @@ function ConfigEditor({ value, onChange, context }) {
               {cardOpen && <div className="mg-switch-config-body">
                 <details open><summary>Query</summary>
                   <label>RefID da query</label>
-                  <ComboInput value={sw.refId} options={inventory.map((query) => ({ value: query.refId, label: `${query.refId} - ${query.name}` }))} onChange={(refId) => updateSwitch(index, { id: sw.duplicateOf ? sw.id : refId, refId })} />
-                  <small>Nome automatico: {query?.name || sw.refId}</small>
+                  <ComboInput value={sw.refId} options={inventory.map((query) => ({ value: query.refId, label: `${query.refId} - ${query.name}` }))} onChange={(refId) => updateSwitch(index, { refId, uploadField: '', downloadField: '', statusField: '', lineField: '', flowField: '' })} />
+                  <small>Nome automatico: {query?.name || sw.refId || 'selecione uma query'}</small>
                 </details>
                 <details><summary>Upload</summary><ComboInput value={sw.uploadField} options={fieldOptions} onChange={(uploadField) => updateSwitch(index, { uploadField })} /></details>
                 <details><summary>Download</summary><ComboInput value={sw.downloadField} options={fieldOptions} onChange={(downloadField) => updateSwitch(index, { downloadField })} /></details>

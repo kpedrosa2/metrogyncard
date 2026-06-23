@@ -1,6 +1,6 @@
 {
   "name": "goias-metrogyn-noc-card-panel",
-  "version": "2.1.11",
+  "version": "2.1.12",
   "description": "Plugin de painel Grafana com mapa NOC do Anel MetroGYN.",
   "scripts": {
     "build": "webpack --mode production",
