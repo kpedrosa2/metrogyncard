@@ -184,41 +184,45 @@
 }
 
 .mg-ring-circle.entry {
-  width: 10.5%;
-  left: 2.8%;
-  top: 45.5%;
-  border-width: 1.8px;
+  width: 6.5%;
+  left: 4.7%;
+  top: 49.3%;
+  border-width: 1.2px;
   border-color: #1aa7ff;
-  box-shadow: 0 0 10px rgba(26, 167, 255, 0.72), inset 0 0 10px rgba(26, 167, 255, 0.22);
+  box-shadow: 0 0 8px rgba(26, 167, 255, 0.64), inset 0 0 7px rgba(26, 167, 255, 0.18);
 }
 
 .mg-ring-circle.primary {
-  width: 38%;
-  left: 20%;
-  top: 24%;
-  border-width: 2.2px;
+  width: 39.63%;
+  height: 70.83%;
+  left: 13.97%;
+  top: 14.06%;
+  aspect-ratio: auto;
+  border-width: 1.25px;
   border-color: #74ff58;
-  box-shadow: 0 0 14px rgba(116, 255, 88, 0.82), inset 0 0 12px rgba(116, 255, 88, 0.18);
+  box-shadow: 0 0 10px rgba(116, 255, 88, 0.7), inset 0 0 8px rgba(116, 255, 88, 0.14);
 }
 
 .mg-ring-circle.secondary {
-  width: 31.5%;
-  left: 59.8%;
-  top: 24.5%;
-  border-width: 2.2px;
+  width: 39.04%;
+  height: 72.92%;
+  left: 43.68%;
+  top: 13.02%;
+  aspect-ratio: auto;
+  border-width: 1.25px;
   border-color: #ff3b30;
-  box-shadow: 0 0 14px rgba(255, 59, 48, 0.82), inset 0 0 12px rgba(255, 59, 48, 0.18);
+  box-shadow: 0 0 10px rgba(255, 59, 48, 0.7), inset 0 0 8px rgba(255, 59, 48, 0.14);
 }
 
 .mg-flow-arrow {
   position: absolute;
   width: 0;
   height: 0;
-  border-top: 6px solid transparent;
-  border-bottom: 6px solid transparent;
-  border-left: 12px solid currentColor;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 8px solid currentColor;
   z-index: 2;
-  filter: drop-shadow(0 0 6px currentColor);
+  filter: drop-shadow(0 0 4px currentColor);
   pointer-events: none;
 }
 
@@ -243,7 +247,7 @@
 
 .mg-ring-bg {
   fill: none;
-  stroke-width: 3.8;
+  stroke-width: 1.5;
   stroke-dasharray: 4.2 2.6;
   stroke-linecap: butt;
   opacity: 1;
@@ -256,7 +260,7 @@
 .mg-ring-bg.secondary { stroke: #ff3b30; color: #ff3b30; }
 
 .mg-link {
-  stroke-width: 2.4;
+  stroke-width: 1.15;
   stroke-linecap: butt;
   filter: drop-shadow(0 0 3px currentColor);
   animation: mg-flow 1.5s linear infinite;
@@ -328,7 +332,7 @@
 
 .mg-ring-label {
   position: absolute;
-  top: 48%;
+  top: 49.48%;
   font-weight: 900;
   font-size: 20px;
   line-height: 1.05;
@@ -340,23 +344,29 @@
   display: block;
 }
 
-.mg-ring-label.primary { left: 39%; color: #39d353; transform: translateX(-50%); }
-.mg-ring-label.secondary { left: 75.7%; color: #ff3b30; transform: translateX(-50%); }
+.mg-ring-label.primary { left: 33.79%; color: #39d353; transform: translate(-50%, -50%); }
+.mg-ring-label.secondary { left: 63.2%; color: #ff3b30; transform: translate(-50%, -50%); }
 
 .mg-site-card {
   position: absolute;
-  width: 104px;
+  width: 136px;
   transform: translate(-50%, -50%);
   border: 1px solid var(--site-color);
-  border-radius: 7px;
+  border-radius: 6px;
   background: linear-gradient(180deg, rgba(11, 22, 35, 0.96), rgba(5, 11, 20, 0.96));
   box-shadow: 0 0 16px color-mix(in srgb, var(--site-color), transparent 70%), inset 0 1px 0 rgba(255,255,255,.05);
-  padding: 6px 7px;
+  padding: 5px 7px;
   z-index: 4;
 }
 
-.mg-dir-block { margin-top: 5px; }
-.mg-dir-block:first-of-type { margin-top: 3px; }
+.mg-card-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.mg-dir-block { min-width: 0; }
 
 a.mg-site-card { text-decoration: none; color: inherit; }
 .mg-site-card.linked { cursor: pointer; }
@@ -444,6 +454,9 @@ a.mg-site-card { text-decoration: none; color: inherit; }
   font-weight: 800;
   letter-spacing: 0.02em;
   line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .mg-card-head span {
@@ -466,21 +479,24 @@ a.mg-site-card { text-decoration: none; color: inherit; }
 .mg-metric {
   display: block;
   color: #cdd9ea;
-  font-size: 8.5px;
+  font-size: 8px;
   margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .mg-metric b {
   display: inline-block;
-  width: 20px;
+  width: 17px;
   color: #8fa1b8;
   font-weight: 600;
-  font-size: 8.5px;
+  font-size: 8px;
 }
 
 .mg-next {
   color: #f1f6fd;
-  font-size: 8.5px;
+  font-size: 8px;
   font-weight: 700;
   margin-bottom: 1px;
   white-space: nowrap;
@@ -509,16 +525,16 @@ a.mg-site-card { text-decoration: none; color: inherit; }
 
 .mg-switch-node {
   position: absolute;
-  width: 54px;
-  height: 34px;
+  width: 58px;
+  height: 36px;
   transform: translate(-50%, -50%);
-  z-index: 3;
+  z-index: 6;
   pointer-events: none;
 }
 
 .mg-switch-node .mg-switch-icon {
   position: static;
-  width: 54px;
+  width: 58px;
   transform: none;
   filter: drop-shadow(0 4px 6px #000);
 }

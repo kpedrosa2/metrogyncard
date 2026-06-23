@@ -377,21 +377,21 @@ function layout(switches, connections) {
   const secondary = secondaryOrder.map((key) => byKey[key]).filter(Boolean);
   const rest = ids.filter((id) => !primary.includes(id) && !secondary.includes(id) && id !== byKey.emater);
   const targetByKey = {
-    emater: { x: 5.5, y: 56, nodeX: 6.5, nodeY: 51 },
-    'sedi-metrogyn': { x: 18, y: 61, nodeX: 19.5, nodeY: 50 },
-    seduce: { x: 14, y: 42, nodeX: 20.5, nodeY: 44 },
-    seapa: { x: 21, y: 25, nodeX: 27, nodeY: 32 },
-    sead: { x: 34, y: 15, nodeX: 38, nodeY: 23 },
-    'ptt-ufg': { x: 54, y: 26, nodeX: 50.5, nodeY: 34 },
-    fapeg: { x: 53, y: 56, nodeX: 53.5, nodeY: 49 },
-    'sedi-pplt': { x: 50, y: 67, nodeX: 50.5, nodeY: 58 },
-    'radio-ufg': { x: 43, y: 78, nodeX: 43, nodeY: 66 },
-    crer: { x: 29, y: 78, nodeX: 31, nodeY: 67 },
-    semad: { x: 70, y: 18, nodeX: 72, nodeY: 26 },
-    ccon: { x: 85, y: 30, nodeX: 82, nodeY: 36 },
-    'goiasprev-ipasgo': { x: 91, y: 49, nodeX: 88, nodeY: 49 },
-    hugo: { x: 84, y: 66, nodeX: 82, nodeY: 62 },
-    detran: { x: 68, y: 80, nodeX: 72, nodeY: 71 },
+    emater: { x: 4.9, y: 57.2, nodeX: 3.68, nodeY: 46.35 },
+    'sedi-metrogyn': { x: 14.0, y: 61.8, nodeX: 9.56, nodeY: 56.77 },
+    seduce: { x: 13.7, y: 35.0, nodeX: 12.5, nodeY: 25.52 },
+    seapa: { x: 22.6, y: 24.0, nodeX: 21.32, nodeY: 15.1 },
+    sead: { x: 34.0, y: 18.0, nodeX: 33.09, nodeY: 9.9 },
+    'ptt-ufg': { x: 46.2, y: 26.0, nodeX: 44.85, nodeY: 20.31 },
+    fapeg: { x: 52.8, y: 39.8, nodeX: 47.79, nodeY: 35.94 },
+    'sedi-pplt': { x: 52.7, y: 55.8, nodeX: 47.79, nodeY: 56.77 },
+    'radio-ufg': { x: 45.0, y: 79.8, nodeX: 44.85, nodeY: 72.4 },
+    semad: { x: 63.5, y: 18.0, nodeX: 62.5, nodeY: 9.9 },
+    ccon: { x: 80.0, y: 34.0, nodeX: 77.21, nodeY: 25.52 },
+    'goiasprev-ipasgo': { x: 86.2, y: 49.0, nodeX: 80.15, nodeY: 46.35 },
+    detran: { x: 68.0, y: 80.5, nodeX: 65.44, nodeY: 82.81 },
+    hugo: { x: 82.0, y: 69.0, nodeX: 74.5, nodeY: 70 },
+    crer: { x: 33.8, y: 80.5, nodeX: 32.5, nodeY: 80 },
   };
   const target = {};
   switches.forEach((sw) => {
@@ -514,15 +514,17 @@ function CompactSiteCard({ site, rules, link, blinkOnAlert, showTooltips }) {
         <strong style={effects.textColor ? { color: effects.textColor } : undefined}>{site.name}</strong>
         {effects.badge && <span className="mg-badge" style={effects.border ? { color: effects.border } : undefined}>{effects.badge}</span>}
       </div>
-      <div className="mg-dir-block">
-        <div className="mg-next">{'\u2192'} {clockwise}</div>
-        <div className="mg-metric"><b>TX:</b>{site.upload}</div>
-        <div className="mg-metric"><b>RX:</b>{site.download}</div>
-      </div>
-      <div className="mg-dir-block">
-        <div className="mg-next mg-prev">{'\u2190'} {counter}</div>
-        <div className="mg-metric"><b>TX:</b>{site.download}</div>
-        <div className="mg-metric"><b>RX:</b>{site.upload}</div>
+      <div className="mg-card-body">
+        <div className="mg-dir-block">
+          <div className="mg-next">{'\u2192'} {clockwise}</div>
+          <div className="mg-metric"><b>TX:</b>{site.upload}</div>
+          <div className="mg-metric"><b>RX:</b>{site.download}</div>
+        </div>
+        <div className="mg-dir-block">
+          <div className="mg-next mg-prev">{'\u2190'} {counter}</div>
+          <div className="mg-metric"><b>TX:</b>{site.download}</div>
+          <div className="mg-metric"><b>RX:</b>{site.upload}</div>
+        </div>
       </div>
       {showTooltips && <SiteTooltip site={site} />}
     </Tag>
@@ -540,19 +542,21 @@ function SwitchNode({ site, blinkOnAlert }) {
 }
 
 const ringArrows = [
-  ['entry', 11, 54, 150],
-  ['primary', 20, 45, -105],
-  ['primary', 28, 29, -44],
-  ['primary', 44, 24, 16],
-  ['primary', 54, 41, 80],
-  ['primary', 50, 62, 142],
-  ['primary', 38, 70, 188],
-  ['primary', 24, 62, 228],
-  ['secondary', 64, 36, -38],
-  ['secondary', 78, 35, 28],
-  ['secondary', 87, 50, 92],
-  ['secondary', 80, 66, 154],
-  ['secondary', 66, 70, 218],
+  ['entry', 8.2, 55.4, -90],
+  ['primary', 14.6, 49.0, -90],
+  ['primary', 20.5, 27.0, -35],
+  ['primary', 34.0, 14.3, 5],
+  ['primary', 48.3, 28.0, 62],
+  ['primary', 50.0, 50.0, 92],
+  ['primary', 45.0, 70.0, 145],
+  ['primary', 31.0, 82.2, 185],
+  ['primary', 18.5, 69.0, 230],
+  ['secondary', 50.0, 27.0, -42],
+  ['secondary', 63.2, 13.8, 0],
+  ['secondary', 77.5, 28.0, 58],
+  ['secondary', 82.0, 49.5, 92],
+  ['secondary', 76.5, 70.5, 140],
+  ['secondary', 63.2, 84.0, 180],
 ];
 
 function RingArrow({ tone, x, y, rotate }) {
@@ -598,14 +602,13 @@ function NetworkMap({ switches, connections, animateLinks, rules, elements, link
         <div className="mg-ring-circle secondary" />
         {ringArrows.map(([tone, x, y, rotate], index) => <RingArrow key={index} tone={tone} x={x} y={y} rotate={rotate} />)}
         <svg className="mg-links" viewBox="0 0 100 100" preserveAspectRatio="none">
-          <line x1="11.2" y1="52.5" x2="16.5" y2="48.5" className="mg-link entry static" />
-          <line x1="50.8" y1="34.2" x2="64.8" y2="26.2" className="mg-link degraded static" />
-          <line x1="43.6" y1="72.2" x2="66" y2="76" className="mg-link down static" />
+          <line x1="7.87" y1="60.81" x2="12.13" y2="60.81" className="mg-link entry static" />
+          <line x1="7.94" y1="49.35" x2="7.94" y2="60.81" className="mg-link entry static" />
           {connections.filter((conn) => conn.ring === 'edge' || conn.ring === 'bridge').map((conn, index) => {
             const from = byId[conn.from];
             const to = byId[conn.to];
             if (!from || !to) return null;
-            return <line key={index} x1={from.x} y1={from.y} x2={to.x} y2={to.y} className={`mg-link ${statusClass(conn.status)} ${conn.direction === 'Anti-horario' ? 'reverse' : ''} ${animateLinks ? '' : 'static'}`} />;
+            return <line key={index} x1={from.nodeX ?? from.x} y1={from.nodeY ?? from.y} x2={to.nodeX ?? to.x} y2={to.nodeY ?? to.y} className={`mg-link ${statusClass(conn.status)} ${conn.direction === 'Anti-horario' ? 'reverse' : ''} ${animateLinks ? '' : 'static'}`} />;
           })}
         </svg>
         <div className="mg-ring-label primary"><span>ANEL</span><span>PRIMARIO</span></div>
