@@ -318,6 +318,11 @@ html[data-theme="light"] .mg-ring-circle.secondary {
   width: 100%;
   height: 100%;
   z-index: 1;
+  pointer-events: none;
+}
+
+.mg-flow-links {
+  z-index: 4;
 }
 
 .mg-ring-fill {
@@ -347,6 +352,12 @@ html[data-theme="light"] .mg-ring-circle.secondary {
   stroke-linecap: butt;
   filter: drop-shadow(0 0 3px currentColor);
   animation: mg-flow 1.5s linear infinite;
+}
+
+.mg-link.flow {
+  stroke-width: 2;
+  stroke-dasharray: 4.2 2.6;
+  filter: drop-shadow(0 0 6px currentColor);
 }
 
 .mg-link.up { stroke: #8cff57; color: #8cff57; }
@@ -582,6 +593,11 @@ a.mg-site-card { text-decoration: none; color: inherit; }
 }
 .mg-tt-row i { width: 10px; height: 3px; border-radius: 999px; }
 .mg-tt-row b { margin-left: auto; color: #f1f6fd; }
+.mg-tt-line i { background: #7b8494; }
+.mg-tt-line.up i { background: #39d353; }
+.mg-tt-line.degraded i { background: #f2cc0c; }
+.mg-tt-line.down i { background: #ff4d4d; }
+.mg-tt-line.unknown i { background: #7b8494; }
 
 .mg-spark { width: 100%; height: 26px; margin-top: 2px; display: block; }
 .mg-spark-empty { color: #6b7a90; font-size: 8px; text-align: center; padding: 6px 0; }

@@ -182,7 +182,9 @@ function pickAutoField(query, kind) {
     upload: [/bits sent/i, /out/i, /tx/i],
     download: [/bits received/i, /in/i, /rx/i],
     status: [/icmp ping/i, /operational status/i, /status/i],
-    line: [/operational status/i, /status/i],
+    lineTx: [/bits sent/i, /out/i, /tx/i],
+    lineRx: [/bits received/i, /in/i, /rx/i],
+    line: [/bits sent/i, /out/i, /tx/i],
     flow: [/fluxo/i, /flow/i, /trafego/i],
   }[kind] || [];
   return query?.fields.find((field) => checks.some((rx) => rx.test(`${field.label} ${field.key}`)))?.id || '';
@@ -207,6 +209,23 @@ function statusFrom(value, upload, download, thresholds) {
   if ((upload || 0) < thresholds.uploadCritBps || (download || 0) < thresholds.downloadCritBps) return 'DOWN';
   if ((upload || 0) < thresholds.uploadWarnBps || (download || 0) < thresholds.downloadWarnBps) return 'DEGRADADO';
   return 'UP';
+}
+
+function interfaceStatus(tx, rx, thresholds) {
+  const limit = Number(thresholds.lineDown ?? 0);
+  const txFailed = tx === null || tx === undefined || Number(tx) <= limit;
+  const rxFailed = rx === null || rx === undefined || Number(rx) <= limit;
+  if (txFailed && rxFailed) return { status: 'DOWN', text: 'Queda de interface fisica' };
+  if (txFailed || rxFailed) return { status: 'DEGRADADO', text: 'Link caiu em um sentido' };
+  return { status: 'UP', text: 'Fluxo normal' };
+}
+
+function combineStatus(base, line) {
+  if (line === 'DOWN') return 'DOWN';
+  if (base === 'DOWN') return 'DOWN';
+  if (line === 'DEGRADADO' || base === 'DEGRADADO') return 'DEGRADADO';
+  if (base === 'UNKNOWN') return line || base;
+  return base || line || 'UNKNOWN';
 }
 
 function statusClass(status) {
@@ -258,14 +277,21 @@ function buildSwitches(config, inventory, rows, seriesByRef) {
     const uploadField = sw.uploadField || pickAutoField(query, 'upload');
     const downloadField = sw.downloadField || pickAutoField(query, 'download');
     const statusField = sw.statusField || pickAutoField(query, 'status');
-    const lineField = sw.lineField || pickAutoField(query, 'line');
+    const lineTxField = sw.lineTxField || sw.lineField || pickAutoField(query, 'lineTx');
+    const lineRxField = sw.lineRxField || pickAutoField(query, 'lineRx');
     const flowField = sw.flowField || pickAutoField(query, 'flow');
     const upload = fieldValue(rows, sw.refId, uploadField) ?? fieldSum(rows, sw.refId, 'upload');
     const download = fieldValue(rows, sw.refId, downloadField) ?? fieldSum(rows, sw.refId, 'download');
     const statusValue = fieldValue(rows, sw.refId, statusField);
-    const lineValue = fieldValue(rows, sw.refId, lineField);
+    const lineTxValue = fieldValue(rows, sw.refId, lineTxField);
+    const lineRxValue = fieldValue(rows, sw.refId, lineRxField);
+    const lineValue = (Number(lineTxValue) || 0) + (Number(lineRxValue) || 0);
+    const lineState = !lineTxField && !lineRxField
+      ? { status: 'UNKNOWN', text: 'Interface nao configurada' }
+      : interfaceStatus(lineTxValue, lineRxValue, thresholds);
     const flowValue = fieldValue(rows, sw.refId, flowField);
     const direction = flowValue === 0 ? 'Sem fluxo' : sw.direction || 'Horario';
+    const baseStatus = statusFrom(statusValue, upload, download, thresholds);
 
     return {
       ...sw,
@@ -279,9 +305,13 @@ function buildSwitches(config, inventory, rows, seriesByRef) {
       uploadSeries: seriesFor(seriesByRef || {}, sw.refId, uploadField, 'upload'),
       downloadSeries: seriesFor(seriesByRef || {}, sw.refId, downloadField, 'download'),
       statusValue,
+      lineTxValue,
+      lineRxValue,
       lineValue,
+      lineStatus: lineState.status,
+      lineAlarm: lineState.text,
       direction,
-      status: statusFrom(statusValue, upload, download, thresholds),
+      status: combineStatus(baseStatus, lineState.status),
     };
   });
 }
@@ -438,6 +468,8 @@ function layout(switches, connections, positions = {}) {
       segment: key,
       clockwise: nextName(key, primaryOrder, secondaryOrder, switches),
       counter: prevName(key, primaryOrder, secondaryOrder, switches),
+      clockwiseId: nextId(key, primaryOrder, secondaryOrder, switches),
+      counterId: prevId(key, primaryOrder, secondaryOrder, switches),
       ...base,
       ...override,
     };
@@ -456,6 +488,10 @@ function siteNameByKey(key, switches) {
   return switches.find((sw) => canonicalSite(sw.name) === key)?.name || '';
 }
 
+function siteIdByKey(key, switches) {
+  return switches.find((sw) => canonicalSite(sw.name) === key)?.id || '';
+}
+
 function ringForKey(key, primaryOrder, secondaryOrder) {
   return secondaryOrder.includes(key) && !['ptt-ufg', 'radio-ufg'].includes(key) ? secondaryOrder : primaryOrder;
 }
@@ -472,6 +508,20 @@ function prevName(key, primaryOrder, secondaryOrder, switches) {
   const ring = ringForKey(key, primaryOrder, secondaryOrder);
   const index = ring.indexOf(key);
   return index >= 0 ? siteNameByKey(ring[(index - 1 + ring.length) % ring.length], switches) : '';
+}
+
+function nextId(key, primaryOrder, secondaryOrder, switches) {
+  if (key === 'emater') return siteIdByKey('sedi-metrogyn', switches);
+  const ring = ringForKey(key, primaryOrder, secondaryOrder);
+  const index = ring.indexOf(key);
+  return index >= 0 ? siteIdByKey(ring[(index + 1) % ring.length], switches) : '';
+}
+
+function prevId(key, primaryOrder, secondaryOrder, switches) {
+  if (key === 'emater') return '';
+  const ring = ringForKey(key, primaryOrder, secondaryOrder);
+  const index = ring.indexOf(key);
+  return index >= 0 ? siteIdByKey(ring[(index - 1 + ring.length) % ring.length], switches) : '';
 }
 
 function Sparkline({ values, color, width = 150, height = 34 }) {
@@ -498,6 +548,8 @@ function SiteTooltip({ site }) {
       <Sparkline values={site.uploadSeries} color="#54a7ff" />
       <div className="mg-tt-row"><i style={{ background: '#55ff6d' }} />Download <b>{site.download}</b></div>
       <Sparkline values={site.downloadSeries} color="#55ff6d" />
+      <div className={`mg-tt-row mg-tt-line ${statusClass(site.lineStatus)}`}><i />Interface <b>{site.lineAlarm || 'Fluxo normal'}</b></div>
+      <div className="mg-tt-row"><i style={{ background: '#8cff57' }} />Fluxo <b>{formatBps(site.lineValue || 0)}</b></div>
     </div>
   );
 }
@@ -578,6 +630,37 @@ function SwitchNode({ site, blinkOnAlert, editMode, onDragPosition }) {
     <div className={`mg-switch-node ${blink ? 'blink' : ''} ${editMode ? 'editable' : ''}`} onPointerDown={editMode ? (event) => onDragPosition(event, site, 'node') : undefined} style={{ left: `${site.nodeX ?? site.x}%`, top: `${site.nodeY ?? site.y}%` }}>
       <SwitchIcon state={cls} />
     </div>
+  );
+}
+
+function switchFlowTarget(site, switches) {
+  const direction = normalize(site.direction);
+  const targetId = direction.includes('anti') ? site.counterId : site.clockwiseId;
+  return switches.find((sw) => sw.id === targetId);
+}
+
+function FlowLinks({ switches, animateLinks }) {
+  return (
+    <svg className="mg-links mg-flow-links" viewBox="0 0 100 100" preserveAspectRatio="none">
+      {switches.map((site) => {
+        if (!site.refId || normalize(site.direction).includes('sem fluxo')) return null;
+        const target = switchFlowTarget(site, switches);
+        if (!target) return null;
+        const cls = statusClass(site.lineStatus || site.status);
+        const reverse = normalize(site.direction).includes('anti') ? ' reverse' : '';
+        const animation = animateLinks ? '' : ' static';
+        return (
+          <line
+            key={`${site.id}-flow`}
+            x1={Number(site.nodeX ?? site.x)}
+            y1={Number(site.nodeY ?? site.y)}
+            x2={Number(target.nodeX ?? target.x)}
+            y2={Number(target.nodeY ?? target.y)}
+            className={`mg-link flow ${cls}${reverse}${animation}`}
+          />
+        );
+      })}
+    </svg>
   );
 }
 
@@ -750,7 +833,7 @@ function NetworkMap({ switches, connections, animateLinks, rules, elements, ring
         <div className={`mg-ring-circle primary ${editMode ? 'editable' : ''}`} style={ringStyle(rings.primary)} onPointerDown={editMode ? (event) => startDragRing(event, 'primary', 'move') : undefined}>
           {editMode && <span className="mg-ring-handle" onPointerDown={(event) => startDragRing(event, 'primary', 'resize')} />}
         </div>
-        <svg className="mg-links" viewBox="0 0 100 100" preserveAspectRatio="none" />
+        <FlowLinks switches={switches} animateLinks={animateLinks} />
         <div className="mg-ring-label primary" style={ringCenter(rings.primary)}><span>ANEL</span><span>PRIMARIO</span></div>
         <div className="mg-ring-label secondary" style={ringCenter(rings.secondary)}><span>ANEL</span><span>SECUNDARIO</span></div>
         {switches.map((site) => <SwitchNode key={`${site.id}-node`} site={site} blinkOnAlert={blinkOnAlert} editMode={editMode} onDragPosition={startDragSwitch} />)}
@@ -1081,16 +1164,20 @@ function ConfigEditor({ value, onChange, context }) {
               {cardOpen && <div className="mg-switch-config-body">
                 <details open><summary>Query</summary>
                   <label>RefID da query</label>
-                  <ComboInput value={sw.refId} options={inventory.map((query) => ({ value: query.refId, label: `${query.refId} - ${query.name}` }))} onChange={(refId) => updateSwitch(index, { refId, uploadField: '', downloadField: '', statusField: '', lineField: '', flowField: '' })} />
+                  <ComboInput value={sw.refId} options={inventory.map((query) => ({ value: query.refId, label: `${query.refId} - ${query.name}` }))} onChange={(refId) => updateSwitch(index, { refId, uploadField: '', downloadField: '', statusField: '', lineField: '', lineTxField: '', lineRxField: '', flowField: '' })} />
                   <small>Nome automatico: {query?.name || sw.refId || 'selecione uma query'}</small>
                 </details>
                 <details><summary>Upload</summary><ComboInput value={sw.uploadField} options={fieldOptions} onChange={(uploadField) => updateSwitch(index, { uploadField })} /></details>
                 <details><summary>Download</summary><ComboInput value={sw.downloadField} options={fieldOptions} onChange={(downloadField) => updateSwitch(index, { downloadField })} /></details>
                 <details><summary>Status</summary><ComboInput value={sw.statusField} options={fieldOptions} onChange={(statusField) => updateSwitch(index, { statusField })} /></details>
                 <details><summary>Linha / Interface / Fluxo</summary>
-                  <ComboInput value={sw.lineField} options={fieldOptions} onChange={(lineField) => updateSwitch(index, { lineField })} />
+                  <label>Bits sent / TX</label>
+                  <ComboInput value={sw.lineTxField || sw.lineField} options={fieldOptions} onChange={(lineTxField) => updateSwitch(index, { lineTxField, lineField: '' })} />
+                  <label>Bits received / RX</label>
+                  <ComboInput value={sw.lineRxField} options={fieldOptions} onChange={(lineRxField) => updateSwitch(index, { lineRxField })} />
                   <label>Sentido do sinal</label>
                   <ComboInput value={sw.direction || 'Horario'} options={[{ value: 'Horario', label: 'Horario' }, { value: 'Anti-horario', label: 'Anti-horario' }, { value: 'Entrada', label: 'Entrada' }, { value: 'Saida', label: 'Saida' }]} onChange={(direction) => updateSwitch(index, { direction })} />
+                  <small>Fluxo = Bits sent + Bits received. Um lado zerado gera alerta de link; os dois zerados geram queda de interface fisica.</small>
                 </details>
                 <details><summary>Drilldown</summary><input type="text" placeholder="ex: /d/zabbix-host?var-host=${host}" value={sw.link || ''} onChange={(event) => updateSwitch(index, { link: event.target.value })} /></details>
                 <details><summary>Thresholds</summary>
