@@ -587,28 +587,6 @@ function SwitchNode({ site, blinkOnAlert, editMode, onDragPosition }) {
   );
 }
 
-const ringArrows = [
-  ['entry', 8.2, 55.4, -90],
-  ['primary', 14.6, 49.0, -90],
-  ['primary', 20.5, 27.0, -35],
-  ['primary', 34.0, 14.3, 5],
-  ['primary', 48.3, 28.0, 62],
-  ['primary', 50.0, 50.0, 92],
-  ['primary', 45.0, 70.0, 145],
-  ['primary', 31.0, 82.2, 185],
-  ['primary', 18.5, 69.0, 230],
-  ['secondary', 50.0, 27.0, -42],
-  ['secondary', 63.2, 13.8, 0],
-  ['secondary', 77.5, 28.0, 58],
-  ['secondary', 82.0, 49.5, 92],
-  ['secondary', 76.5, 70.5, 140],
-  ['secondary', 63.2, 84.0, 180],
-];
-
-function RingArrow({ tone, x, y, rotate }) {
-  return <span className={`mg-flow-arrow ${tone}`} style={{ left: `${x}%`, top: `${y}%`, transform: `translate(-50%, -50%) rotate(${rotate}deg)` }} />;
-}
-
 function ringStyle(ring) {
   return {
     left: `${Number(ring.left ?? 0)}%`,
@@ -761,15 +739,7 @@ function NetworkMap({ switches, connections, animateLinks, rules, elements, ring
             {editMode && <span className="mg-ring-handle" onPointerDown={(event) => startDragRing(event, name, 'resize')} />}
           </div>
         ))}
-        {ringArrows.map(([tone, x, y, rotate], index) => <RingArrow key={index} tone={tone} x={x} y={y} rotate={rotate} />)}
-        <svg className="mg-links" viewBox="0 0 100 100" preserveAspectRatio="none">
-          <defs>
-            <marker id="mg-entry-arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-              <path d="M0,0 L6,3 L0,6 Z" fill="#1aa7ff" />
-            </marker>
-          </defs>
-          <line x1="8.8" y1="54.7" x2="15.7" y2="48.4" className="mg-link entry emater static" markerEnd="url(#mg-entry-arrow)" />
-        </svg>
+        <svg className="mg-links" viewBox="0 0 100 100" preserveAspectRatio="none" />
         <div className="mg-ring-label primary" style={ringCenter(rings.primary)}><span>ANEL</span><span>PRIMARIO</span></div>
         <div className="mg-ring-label secondary" style={ringCenter(rings.secondary)}><span>ANEL</span><span>SECUNDARIO</span></div>
         {switches.map((site) => <SwitchNode key={`${site.id}-node`} site={site} blinkOnAlert={blinkOnAlert} editMode={editMode} onDragPosition={startDragSwitch} />)}
@@ -1051,9 +1021,20 @@ function ConfigEditor({ value, onChange, context }) {
   const addElement = () => update({ ...config, elements: [...config.elements, { id: `element-${config.elements.length + 1}`, type: 'rect', x: 50, y: 50, w: 10, h: 5, scope: 'all', metric: 'traffic', text: '${name}: ${value}', color: '#42b8ff', enabled: true }] });
   const removeElement = (index) => update({ ...config, elements: config.elements.filter((_, i) => i !== index) });
   const addSwitch = () => {
-    const available = inventory.find((query) => !config.switches.some((sw) => sw.refId === query.refId));
-    if (!available) return;
-    update({ ...config, switches: [...config.switches, { id: available.refId, refId: available.refId, direction: 'Horario', thresholds: defaultThresholds }] });
+    const existingRefs = new Set(visibleSwitches.map((sw) => sw.refId));
+    const available = inventory.find((query) => !existingRefs.has(query.refId)) || inventory[0];
+    const refId = available?.refId || `manual-${Date.now().toString(36)}`;
+    const newSwitch = {
+      id: existingRefs.has(refId) ? `${refId}-manual-${Date.now().toString(36)}` : refId,
+      refId,
+      direction: 'Horario',
+      thresholds: defaultThresholds,
+    };
+    update({
+      ...config,
+      switches: [...visibleSwitches, newSwitch],
+      excludedSwitches: (config.excludedSwitches || []).filter((item) => item !== refId && item !== newSwitch.id),
+    });
   };
   const addConnection = () => {
     if (visibleSwitches.length < 2) return;
@@ -1080,6 +1061,7 @@ function ConfigEditor({ value, onChange, context }) {
         {['switches', 'elements', 'rules', 'general'].map((name) => <button key={name} className={tab === name ? 'active' : ''} onClick={() => setTab(name)}>{name}</button>)}
       </div>
       {tab === 'switches' && <div>
+        <button className="mg-editor-add" onClick={addSwitch}>+ Adicionar switch</button>
         <p className="mg-editor-hint">Cada query do painel vira um card de switch pelo RefID. Abra o card, configure os campos e depois posicione no mapa pelo botao Editar posicoes.</p>
         {visibleSwitches.map((sw, index) => {
           const query = inventory.find((item) => item.refId === sw.refId);

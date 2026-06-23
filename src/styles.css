@@ -269,21 +269,6 @@
   cursor: nwse-resize;
 }
 
-.mg-flow-arrow {
-  position: absolute;
-  width: 0;
-  height: 0;
-  border-top: 4px solid transparent;
-  border-bottom: 4px solid transparent;
-  border-left: 8px solid currentColor;
-  z-index: 2;
-  filter: drop-shadow(0 0 4px currentColor);
-  pointer-events: none;
-}
-
-.mg-flow-arrow.primary { color: #9cff63; }
-.mg-flow-arrow.secondary { color: #9cff63; }
-
 .mg-links {
   position: absolute;
   inset: 0;
@@ -334,8 +319,6 @@
   stroke-dasharray: 4 4;
   stroke-linecap: round;
 }
-.mg-flow-arrow.entry { color: #1aa7ff; }
-
 .mg-flow-element {
   position: absolute;
   display: grid;
