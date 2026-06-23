@@ -214,7 +214,7 @@
   aspect-ratio: 1 / 1;
   border-radius: 50%;
   border-style: solid;
-  background: rgba(3, 10, 18, 0.72);
+  background: #000000;
   box-sizing: border-box;
   z-index: 0;
 }
@@ -222,7 +222,7 @@
 body.theme-light .mg-ring-circle,
 .theme-light .mg-ring-circle,
 html[data-theme="light"] .mg-ring-circle {
-  background: rgba(255, 255, 255, 0.86);
+  background: #ffffff;
 }
 
 .mg-ring-circle.entry {
@@ -232,9 +232,9 @@ html[data-theme="light"] .mg-ring-circle {
   top: 46.5%;
   border-width: 2px;
   border-color: #1aa7ff;
-  background: rgba(3, 15, 28, 0.62);
+  background: #000000;
   box-shadow: 0 0 12px rgba(26, 167, 255, 0.7), inset 0 0 9px rgba(26, 167, 255, 0.2);
-  z-index: 3;
+  z-index: 2;
 }
 
 .mg-ring-circle.primary {
@@ -245,9 +245,9 @@ html[data-theme="light"] .mg-ring-circle {
   aspect-ratio: auto;
   border-width: 2px;
   border-color: #74ff58;
-  background: rgba(3, 10, 18, 0.78);
+  background: #000000;
   box-shadow: 0 0 12px rgba(116, 255, 88, 0.72), inset 0 0 18px rgba(116, 255, 88, 0.06);
-  z-index: 2;
+  z-index: 4;
 }
 
 .mg-ring-circle.secondary {
@@ -258,7 +258,7 @@ html[data-theme="light"] .mg-ring-circle {
   aspect-ratio: auto;
   border-width: 2px;
   border-color: #74ff58;
-  background: rgba(3, 10, 18, 0.68);
+  background: #000000;
   box-shadow: 0 0 12px rgba(116, 255, 88, 0.72), inset 0 0 18px rgba(116, 255, 88, 0.05);
   z-index: 1;
 }
@@ -266,19 +266,19 @@ html[data-theme="light"] .mg-ring-circle {
 body.theme-light .mg-ring-circle.entry,
 .theme-light .mg-ring-circle.entry,
 html[data-theme="light"] .mg-ring-circle.entry {
-  background: rgba(255, 255, 255, 0.78);
+  background: #ffffff;
 }
 
 body.theme-light .mg-ring-circle.primary,
 .theme-light .mg-ring-circle.primary,
 html[data-theme="light"] .mg-ring-circle.primary {
-  background: rgba(255, 255, 255, 0.94);
+  background: #ffffff;
 }
 
 body.theme-light .mg-ring-circle.secondary,
 .theme-light .mg-ring-circle.secondary,
 html[data-theme="light"] .mg-ring-circle.secondary {
-  background: rgba(255, 255, 255, 0.82);
+  background: #ffffff;
 }
 
 .mg-ring-circle.editable {
@@ -286,11 +286,11 @@ html[data-theme="light"] .mg-ring-circle.secondary {
 }
 
 .mg-ring-circle.primary.editable {
-  z-index: 2;
+  z-index: 4;
 }
 
 .mg-ring-circle.entry.editable {
-  z-index: 3;
+  z-index: 2;
 }
 
 .mg-ring-circle.secondary.editable {
@@ -443,8 +443,8 @@ html[data-theme="light"] .mg-ring-circle.secondary {
   display: block;
 }
 
-.mg-ring-label.primary { left: 33.79%; color: #39d353; transform: translate(-50%, -50%); }
-.mg-ring-label.secondary { left: 63.2%; color: #39d353; transform: translate(-50%, -50%); }
+.mg-ring-label.primary { left: 33.79%; color: #39d353; transform: translate(-50%, -50%); z-index: 5; }
+.mg-ring-label.secondary { left: 63.2%; color: #39d353; transform: translate(-50%, -50%); z-index: 3; }
 
 .mg-site-card {
   position: absolute;
