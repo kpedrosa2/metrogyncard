@@ -591,6 +591,14 @@ a.mg-site-card { text-decoration: none; color: inherit; }
   pointer-events: none;
 }
 
+.mg-switch-node.editable {
+  pointer-events: auto;
+}
+
+.mg-switch-node.editable .mg-switch-icon {
+  pointer-events: none;
+}
+
 .mg-switch-node .mg-switch-icon {
   position: static;
   width: 58px;
