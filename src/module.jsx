@@ -647,6 +647,7 @@ function NetworkMap({ switches, connections, animateLinks, rules, elements, link
         <div className="mg-ring-circle entry" />
         <div className="mg-ring-circle primary" />
         <div className="mg-ring-circle secondary" />
+        <div className="mg-ring-cut overlap" />
         {ringArrows.map(([tone, x, y, rotate], index) => <RingArrow key={index} tone={tone} x={x} y={y} rotate={rotate} />)}
         <svg className="mg-links" viewBox="0 0 100 100" preserveAspectRatio="none">
           <line x1="7.87" y1="60.81" x2="12.13" y2="60.81" className="mg-link entry static" />
