@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/grafana/grafana/main/docs/sources/developers/plugins/plugin.schema.json",
+  "type": "panel",
+  "id": "goias-metrogyn-noc-card-panel",
+  "name": "MetroGYN NOC Map",
+  "info": {
+    "description": "Card NOC para sites/switches do Anel MetroGYN.",
+    "author": {
+      "name": "SGG/STI"
+    },
+    "keywords": [
+      "metrogyn",
+      "noc",
+      "zabbix",
+      "network"
+    ],
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "version": "2.0.9",
+    "updated": "2026-06-22"
+  },
+  "dependencies": {
+    "grafanaDependency": ">=10.0.0",
+    "plugins": []
+  }
+}

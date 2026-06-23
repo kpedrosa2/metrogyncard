@@ -1,0 +1,46 @@
+{
+  "kind": "noc-card",
+  "name": "metrogyn-site-card",
+  "title": "MetroGYN Site Card",
+  "description": "Card operacional estilo NOC para sites/switches do Anel MetroGYN.",
+  "datasource": {
+    "type": "alexanderzobnin-zabbix-datasource",
+    "uid": "000000005",
+    "name": "Zabbix"
+  },
+  "zabbix": {
+    "group": "SEDI Switches METROGYN",
+    "host": "emater metrogyn",
+    "statusMinSeverity": 3
+  },
+  "defaults": {
+    "siteName": "EMATER",
+    "status": "UP",
+    "upload": "900 Mbps",
+    "download": "700 Mbps",
+    "rx": "N/A",
+    "tx": "N/A",
+    "latency": "N/A",
+    "packetLoss": "N/A",
+    "signalDirection": "Entrada",
+    "lastEvent": "N/A"
+  },
+  "states": {
+    "UP": {
+      "label": "UP",
+      "color": "#39d353"
+    },
+    "DEGRADED": {
+      "label": "DEGRADED",
+      "color": "#d29922"
+    },
+    "DOWN": {
+      "label": "DOWN",
+      "color": "#ff4d4d"
+    },
+    "UNKNOWN": {
+      "label": "SEM MONITORAMENTO",
+      "color": "#7b8494"
+    }
+  }
+}
