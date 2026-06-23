@@ -349,7 +349,7 @@
 
 .mg-site-card {
   position: absolute;
-  width: 136px;
+  width: 118px;
   transform: translate(-50%, -50%);
   border: 1px solid var(--site-color);
   border-radius: 6px;
@@ -362,7 +362,7 @@
 .mg-card-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 6px;
+  gap: 4px;
   margin-top: 4px;
 }
 
@@ -450,7 +450,7 @@ a.mg-site-card { text-decoration: none; color: inherit; }
 
 .mg-card-head strong {
   color: var(--site-color);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.02em;
   line-height: 1.1;
@@ -479,7 +479,7 @@ a.mg-site-card { text-decoration: none; color: inherit; }
 .mg-metric {
   display: block;
   color: #cdd9ea;
-  font-size: 8px;
+  font-size: 7.5px;
   margin-top: 1px;
   white-space: nowrap;
   overflow: hidden;
@@ -488,15 +488,15 @@ a.mg-site-card { text-decoration: none; color: inherit; }
 
 .mg-metric b {
   display: inline-block;
-  width: 17px;
+  width: 15px;
   color: #8fa1b8;
   font-weight: 600;
-  font-size: 8px;
+  font-size: 7.5px;
 }
 
 .mg-next {
   color: #f1f6fd;
-  font-size: 8px;
+  font-size: 7.5px;
   font-weight: 700;
   margin-bottom: 1px;
   white-space: nowrap;
