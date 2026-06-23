@@ -34,7 +34,7 @@ const defaults = {
     cardSizes: {},
     excludedSwitches: [],
     rings: {
-      entry: { left: 3.6, top: 46.5, width: 10, height: 17.5 },
+      entry: { left: 4.6, top: 55.2, width: 10.8, height: 0 },
       primary: { left: 13.97, top: 14.06, width: 39.63, height: 70.83 },
       secondary: { left: 43.68, top: 13.02, width: 39.04, height: 72.92 },
     },
@@ -596,6 +596,19 @@ function ringStyle(ring) {
   };
 }
 
+function entryLineStyle(ring) {
+  const left = Number(ring.left ?? 4.6);
+  const top = Number(ring.top ?? 55.2);
+  const width = Number(ring.width ?? 10.8);
+  const previousCircleHeight = Number(ring.height ?? 0);
+  const centerTop = previousCircleHeight > 4 ? top + previousCircleHeight / 2 : top;
+  return {
+    left: `${left}%`,
+    top: `${centerTop}%`,
+    width: `${Math.max(4, width)}%`,
+  };
+}
+
 function ringCenter(ring) {
   return {
     left: `${Number(ring.left ?? 0) + Number(ring.width ?? 0) / 2}%`,
@@ -734,7 +747,7 @@ function NetworkMap({ switches, connections, animateLinks, rules, elements, ring
   return (
     <div className={`mg-map ${editMode ? 'editing' : ''}`}>
       <div className="mg-stage" ref={stageRef}>
-        <div className={`mg-ring-circle entry ${editMode ? 'editable' : ''}`} style={ringStyle(rings.entry)} onPointerDown={editMode ? (event) => startDragRing(event, 'entry', 'move') : undefined}>
+        <div className={`mg-entry-line ${editMode ? 'editable' : ''}`} style={entryLineStyle(rings.entry)} onPointerDown={editMode ? (event) => startDragRing(event, 'entry', 'move') : undefined}>
           {editMode && <span className="mg-ring-handle" onPointerDown={(event) => startDragRing(event, 'entry', 'resize')} />}
         </div>
         <div className={`mg-ring-circle secondary ${editMode ? 'editable' : ''}`} style={ringStyle(rings.secondary)} onPointerDown={editMode ? (event) => startDragRing(event, 'secondary', 'move') : undefined}>

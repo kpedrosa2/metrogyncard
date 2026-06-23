@@ -225,16 +225,15 @@ html[data-theme="light"] .mg-ring-circle {
   background: #ffffff;
 }
 
-.mg-ring-circle.entry {
-  width: 10%;
-  height: 17.5%;
-  left: 3.6%;
-  top: 46.5%;
-  border-width: 2px;
-  border-color: #1aa7ff;
-  background: #000000;
-  box-shadow: 0 0 12px rgba(26, 167, 255, 0.7), inset 0 0 9px rgba(26, 167, 255, 0.2);
-  z-index: 2;
+.mg-entry-line {
+  position: absolute;
+  height: 2px;
+  border-radius: 999px;
+  background: #74ff58;
+  box-shadow: 0 0 12px rgba(116, 255, 88, 0.72);
+  transform: translateY(-50%);
+  transform-origin: left center;
+  z-index: 3;
 }
 
 .mg-ring-circle.primary {
@@ -263,12 +262,6 @@ html[data-theme="light"] .mg-ring-circle {
   z-index: 1;
 }
 
-body.theme-light .mg-ring-circle.entry,
-.theme-light .mg-ring-circle.entry,
-html[data-theme="light"] .mg-ring-circle.entry {
-  background: #ffffff;
-}
-
 body.theme-light .mg-ring-circle.primary,
 .theme-light .mg-ring-circle.primary,
 html[data-theme="light"] .mg-ring-circle.primary {
@@ -289,8 +282,9 @@ html[data-theme="light"] .mg-ring-circle.secondary {
   z-index: 4;
 }
 
-.mg-ring-circle.entry.editable {
-  z-index: 2;
+.mg-entry-line.editable {
+  cursor: move;
+  z-index: 3;
 }
 
 .mg-ring-circle.secondary.editable {
@@ -309,6 +303,13 @@ html[data-theme="light"] .mg-ring-circle.secondary {
   box-shadow: 0 0 10px rgba(143, 211, 255, 0.5);
   cursor: nwse-resize;
   z-index: 6;
+}
+
+.mg-entry-line .mg-ring-handle {
+  right: -7px;
+  bottom: auto;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .mg-links {
