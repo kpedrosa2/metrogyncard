@@ -355,9 +355,18 @@ html[data-theme="light"] .mg-ring-circle.secondary {
 }
 
 .mg-link.flow {
-  stroke-width: 2;
+  stroke-width: 1.55;
   stroke-dasharray: 4.2 2.6;
   filter: drop-shadow(0 0 6px currentColor);
+}
+
+.mg-link.flow.tx {
+  opacity: 0.98;
+}
+
+.mg-link.flow.rx {
+  opacity: 0.82;
+  stroke-dasharray: 2.8 2.4;
 }
 
 .mg-link.up { stroke: #8cff57; color: #8cff57; }

@@ -220,6 +220,11 @@ function interfaceStatus(tx, rx, thresholds) {
   return { status: 'UP', text: 'Fluxo normal' };
 }
 
+function interfaceSideStatus(value, thresholds) {
+  if (value === null || value === undefined) return 'UNKNOWN';
+  return Number(value) <= Number(thresholds.lineDown ?? 0) ? 'DOWN' : 'UP';
+}
+
 function combineStatus(base, line) {
   if (line === 'DOWN') return 'DOWN';
   if (base === 'DOWN') return 'DOWN';
@@ -307,6 +312,8 @@ function buildSwitches(config, inventory, rows, seriesByRef) {
       statusValue,
       lineTxValue,
       lineRxValue,
+      lineTxStatus: interfaceSideStatus(lineTxValue, thresholds),
+      lineRxStatus: interfaceSideStatus(lineRxValue, thresholds),
       lineValue,
       lineStatus: lineState.status,
       lineAlarm: lineState.text,
@@ -646,19 +653,33 @@ function FlowLinks({ switches, animateLinks }) {
         if (!site.refId || normalize(site.direction).includes('sem fluxo')) return null;
         const target = switchFlowTarget(site, switches);
         if (!target) return null;
-        const cls = statusClass(site.lineStatus || site.status);
+        const x1 = Number(site.nodeX ?? site.x);
+        const y1 = Number(site.nodeY ?? site.y);
+        const x2 = Number(target.nodeX ?? target.x);
+        const y2 = Number(target.nodeY ?? target.y);
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const length = Math.hypot(dx, dy) || 1;
+        const offsetX = (-dy / length) * 0.42;
+        const offsetY = (dx / length) * 0.42;
         const reverse = normalize(site.direction).includes('anti') ? ' reverse' : '';
         const animation = animateLinks ? '' : ' static';
-        return (
+        const lines = [
+          { key: 'tx', label: 'sent', status: site.lineTxStatus, reverse, ox: offsetX, oy: offsetY },
+          { key: 'rx', label: 'received', status: site.lineRxStatus, reverse: reverse ? '' : ' reverse', ox: -offsetX, oy: -offsetY },
+        ];
+        return lines.map((line) => (
           <line
-            key={`${site.id}-flow`}
-            x1={Number(site.nodeX ?? site.x)}
-            y1={Number(site.nodeY ?? site.y)}
-            x2={Number(target.nodeX ?? target.x)}
-            y2={Number(target.nodeY ?? target.y)}
-            className={`mg-link flow ${cls}${reverse}${animation}`}
-          />
-        );
+            key={`${site.id}-flow-${line.key}`}
+            x1={x1 + line.ox}
+            y1={y1 + line.oy}
+            x2={x2 + line.ox}
+            y2={y2 + line.oy}
+            className={`mg-link flow ${line.key} ${statusClass(line.status)}${line.reverse}${animation}`}
+          >
+            <title>{`${site.name} ${line.label}: ${formatBps(line.key === 'tx' ? site.lineTxValue || 0 : site.lineRxValue || 0)}`}</title>
+          </line>
+        ));
       })}
     </svg>
   );
